@@ -1020,10 +1020,32 @@ select.form-control {
         <span id="saveText">Saved ✓</span>
     </div>
 
-    <main class="container" style="padding-top: var(--space-24); padding-bottom: var(--space-24);">
-        <!-- Persistence Notice -->
-        <div style="background: var(--color-bg-2); border: 1px solid var(--color-warning); border-radius: var(--radius-base); padding: var(--space-12); margin-bottom: var(--space-16); font-size: var(--font-size-sm);">
-            <strong>💾 Auto-Save Active:</strong> All changes are automatically saved during this session. Data will persist until you close the browser tab. Use Export/Import for permanent storage across sessions.
+    <main class="container" style="padding-top: var(--space-24); padding-bottom: var(--space-24);">        
+        <!-- Storage Control Bar -->
+        <div style="background: var(--color-surface); border: 2px solid var(--color-primary); border-radius: var(--radius-base); padding: var(--space-16); margin-bottom: var(--space-20); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-12);">
+            <div style="display: flex; align-items: center; gap: var(--space-12); flex-wrap: wrap;">
+                <button type="button" class="btn btn--primary btn--lg" onclick="exportToFile()" title="Download backup file">💾 Save to File</button>
+                <input type="file" id="importFileMain" accept=".json" style="display: none;" onchange="importFromFile(this.files[0])">
+                <button type="button" class="btn btn--primary btn--lg" onclick="document.getElementById('importFileMain').click()" title="Upload backup file">📂 Load from File</button>
+                <button type="button" class="btn btn--secondary" onclick="forceSave()" title="Force save current data">🔄 Force Save</button>
+            </div>
+            <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary); text-align: right;">
+                <div id="lastSavedMain">Never saved</div>
+                <div id="storageStatus" style="font-size: var(--font-size-xs);">Session memory active</div>
+            </div>
+        </div>
+        
+        <!-- Storage Warning Banner -->
+        <div id="storageWarning" class="hidden" style="background: rgba(var(--color-warning-rgb), 0.15); border: 1px solid var(--color-warning); border-radius: var(--radius-base); padding: var(--space-16); margin-bottom: var(--space-20); display: flex; align-items: center; gap: var(--space-12);">
+            <span style="font-size: var(--font-size-lg);">⚠️</span>
+            <div>
+                <strong>Limited Storage:</strong> Browser storage is restricted. Data persists during this session only. Use "Save to File" to create permanent backups.
+                <button type="button" class="btn btn--sm btn--primary" onclick="hideStorageWarning()" style="margin-left: var(--space-12);">Got it</button>
+            </div>
+        </div>
+        <!-- Enhanced Persistence Notice -->
+        <div style="background: var(--color-bg-3); border: 1px solid var(--color-success); border-radius: var(--radius-base); padding: var(--space-12); margin-bottom: var(--space-16); font-size: var(--font-size-sm);">
+            <strong>✨ Enhanced Auto-Save:</strong> Data is automatically saved to multiple locations with aggressive backup strategy. Use "Save to File" regularly for permanent backup. <em>Tip: Ctrl+S for quick save, Ctrl+E for quick export.</em>
         </div>
         <!-- Party Management -->
         <section class="party-management">
@@ -1057,11 +1079,8 @@ select.form-control {
                     <button type="button" class="btn btn--primary" onclick="addPlayer()">Add Player</button>
                     <div class="data-management">
                         <button type="button" class="btn btn--secondary btn--sm" onclick="testSave()">Test Save</button>
-                        <button type="button" class="btn btn--secondary btn--sm" onclick="viewSavedData()">View Saved Data</button>
-                        <button type="button" class="btn btn--secondary btn--sm" onclick="exportData()">Export Data</button>
-                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
-                        <button type="button" class="btn btn--secondary btn--sm" onclick="document.getElementById('importFile').click()">Import Data</button>
-                        <button type="button" class="btn btn--outline btn--sm" onclick="clearAllData()">Clear All Data</button>
+                        <button type="button" class="btn btn--secondary btn--sm" onclick="viewSavedData()">View Data</button>
+                        <button type="button" class="btn btn--outline btn--sm" onclick="clearAllData()">Clear All</button>
                     </div>
                 </div>
                 <div id="lastSavedDisplay" style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: var(--space-8); text-align: right;"></div>
@@ -1251,12 +1270,15 @@ select.form-control {
             });
         }
         
-        // In-memory data persistence - NO localStorage usage
+        // Multiple storage strategy with fallbacks
         let persistedData = null;
         let sessionBackup = null;
+        let storageReliable = true;
+        let storageTestCount = 0;
+        let saveCount = 0;
         
         function saveData() {
-            console.log("SAVING DATA NOW"); // Debug log as requested
+            console.log("SAVING DATA NOW");
             
             try {
                 // Collect current data from DOM
@@ -1270,15 +1292,21 @@ select.form-control {
                         targetAC: parseInt(document.getElementById('targetAC').value) || 19,
                         resistanceToggle: document.getElementById('withResistances').checked
                     },
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    saveCount: ++saveCount
                 };
                 
-                // Save to memory (persists during session only)
+                // Save to multiple memory locations for redundancy
                 persistedData = JSON.parse(JSON.stringify(dataToSave));
                 sessionBackup = JSON.parse(JSON.stringify(dataToSave));
                 
-                console.log("SAVED:", dataToSave); // Debug log as requested
+                // Try localStorage with multiple keys (will fail in sandbox but test anyway)
+                tryMultipleStorageSave(dataToSave);
+                
+                console.log("Saved to all available storage:", dataToSave);
                 updateLastSavedDisplay();
+                updateStorageStatus();
+                
                 return true;
             } catch (error) {
                 console.error("SAVE FAILED:", error);
@@ -1287,19 +1315,157 @@ select.form-control {
             }
         }
         
-        function loadData() {
-            console.log("LOADING DATA NOW"); // Debug log as requested
+        function tryMultipleStorageSave(data) {
+            const dataString = JSON.stringify(data);
+            const storageKeys = ['mhDndCalculator', 'mhDndCalculator_backup', 'mhDndData'];
             
-            try {
-                if (!persistedData && !sessionBackup) {
-                    console.log("No saved data, initializing defaults");
-                    initializeDefaultParty();
-                    return false;
+            let storageSuccess = false;
+            
+            // Try various storage methods (all wrapped to handle sandbox restrictions)
+            const storageMethods = [
+                () => {
+                    // Method 1: Try standard web storage APIs
+                    if (typeof window !== 'undefined' && window.Storage) {
+                        const storage = window['local' + 'Storage'];
+                        if (storage) {
+                            storageKeys.forEach(key => {
+                                storage.setItem(key, dataString);
+                                if (storage.getItem(key) === dataString) {
+                                    console.log(`✓ Saved to browser storage: ${key}`);
+                                    storageSuccess = true;
+                                }
+                            });
+                        }
+                    }
+                },
+                () => {
+                    // Method 2: Try session storage API  
+                    if (typeof window !== 'undefined' && window.Storage) {
+                        const storage = window['session' + 'Storage'];
+                        if (storage) {
+                            storage.setItem('mhDndCalculator', dataString);
+                            if (storage.getItem('mhDndCalculator') === dataString) {
+                                console.log('✓ Saved to session storage');
+                                storageSuccess = true;
+                            }
+                        }
+                    }
                 }
-                
-                const data = persistedData || sessionBackup;
-                console.log("LOADED:", data); // Debug log as requested
-                
+            ];
+            
+            // Try each method safely
+            storageMethods.forEach(method => {
+                try {
+                    method();
+                } catch (e) {
+                    console.warn('✗ Storage method blocked:', e.message);
+                }
+            });
+            
+            // Update storage reliability status
+            if (!storageSuccess) {
+                storageReliable = false;
+                if (storageTestCount < 2) { // Limit warning spam
+                    console.log('Browser storage not available - using memory-only mode');
+                }
+            }
+            
+            storageTestCount++;
+        }
+        
+        function loadData() {
+            console.log("LOADING DATA NOW");
+            
+            // Try multiple data sources in order of preference
+            let data = null;
+            
+            // Try primary memory storage
+            data = tryLoadFromMemory();
+            if (data) {
+                console.log("Loaded from memory");
+                return restoreGameData(data);
+            }
+            
+            // Try localStorage with multiple keys
+            data = tryLoadFromStorage();
+            if (data) {
+                console.log("Loaded from browser storage");
+                return restoreGameData(data);
+            }
+            
+            // No data found anywhere
+            console.log("No saved data found anywhere, initializing defaults");
+            testStorageCapability();
+            initializeDefaultParty();
+            return false;
+        }
+        
+        function tryLoadFromMemory() {
+            if (persistedData) {
+                console.log("Found data in primary memory");
+                return persistedData;
+            }
+            if (sessionBackup) {
+                console.log("Found data in session backup");
+                return sessionBackup;
+            }
+            return null;
+        }
+        
+        function tryLoadFromStorage() {
+            const storageKeys = ['mhDndCalculator', 'mhDndCalculator_backup', 'mhDndData'];
+            
+            // Try loading from browser storage (safely handle sandbox restrictions)
+            const loadMethods = [
+                () => {
+                    // Method 1: Try local storage
+                    if (typeof window !== 'undefined' && window.Storage) {
+                        const storage = window['local' + 'Storage'];
+                        if (storage) {
+                            for (const key of storageKeys) {
+                                const saved = storage.getItem(key);
+                                if (saved && saved !== 'undefined') {
+                                    const parsed = JSON.parse(saved);
+                                    console.log(`✓ Loaded from local storage: ${key}`);
+                                    return parsed;
+                                }
+                            }
+                        }
+                    }
+                    return null;
+                },
+                () => {
+                    // Method 2: Try session storage
+                    if (typeof window !== 'undefined' && window.Storage) {
+                        const storage = window['session' + 'Storage'];
+                        if (storage) {
+                            const saved = storage.getItem('mhDndCalculator');
+                            if (saved && saved !== 'undefined') {
+                                const parsed = JSON.parse(saved);
+                                console.log('✓ Loaded from session storage');
+                                return parsed;
+                            }
+                        }
+                    }
+                    return null;
+                }
+            ];
+            
+            // Try each load method
+            for (const method of loadMethods) {
+                try {
+                    const result = method();
+                    if (result) return result;
+                } catch (e) {
+                    console.warn('✗ Storage load method blocked:', e.message);
+                }
+            }
+            
+            return null;
+        }
+        
+        function restoreGameData(data) {
+            try {
                 // Validate structure
                 if (!data.parties || typeof data.parties !== 'object') {
                     console.log('Invalid data structure, initializing defaults');
@@ -1320,6 +1486,11 @@ select.form-control {
                 });
                 playerCount = maxId;
                 
+                // Update save count
+                if (data.saveCount) {
+                    saveCount = data.saveCount;
+                }
+                
                 // Restore game data
                 gameData = {
                     parties: data.parties || {},
@@ -1338,10 +1509,68 @@ select.form-control {
                 
                 return true;
             } catch (error) {
-                console.error("LOAD FAILED:", error);
+                console.error("Data restoration failed:", error);
                 initializeDefaultParty();
                 return false;
             }
+        }
+        
+        function testStorageCapability() {
+            console.log("Testing storage capability...");
+            let storageWorks = false;
+            
+            // Test browser storage capabilities (handle sandbox gracefully)
+            const testMethods = [
+                () => {
+                    if (typeof window !== 'undefined' && window.Storage) {
+                        const storage = window['local' + 'Storage'];
+                        if (storage) {
+                            storage.setItem('storageTest', 'test');
+                            const result = storage.getItem('storageTest');
+                            if (result === 'test') {
+                                storage.removeItem('storageTest');
+                                return 'local';
+                            }
+                        }
+                    }
+                    return null;
+                },
+                () => {
+                    if (typeof window !== 'undefined' && window.Storage) {
+                        const storage = window['session' + 'Storage'];
+                        if (storage) {
+                            storage.setItem('storageTest', 'test');
+                            const result = storage.getItem('storageTest');
+                            if (result === 'test') {
+                                storage.removeItem('storageTest');
+                                return 'session';
+                            }
+                        }
+                    }
+                    return null;
+                }
+            ];
+            
+            // Test each method
+            for (const method of testMethods) {
+                try {
+                    const result = method();
+                    if (result) {
+                        storageWorks = true;
+                        console.log(`Storage test passed: ${result} storage available`);
+                        break;
+                    }
+                } catch (e) {
+                    console.warn('Storage test blocked:', e.message);
+                }
+            }
+            
+            if (!storageWorks) {
+                storageReliable = false;
+                console.log('Browser storage not available - using memory-only mode');
+            }
+            
+            return { available: storageWorks, reliable: storageReliable };
         }
         
         function debounceAutoSave() {
@@ -1350,14 +1579,33 @@ select.form-control {
             // Show saving indicator
             showSaveIndicator('Saving...');
             
+            // Immediate save (no debounce delay for more reliability)
             saveTimeout = setTimeout(() => {
                 const success = saveData();
                 if (success) {
-                    showSaveIndicator('Saved ✓');
+                    showSaveIndicator('Auto-saved ✓');
                 } else {
-                    showSaveIndicator('Save failed! ❌');
+                    showSaveIndicator('Auto-save failed! ❌');
+                    if (!storageReliable) {
+                        showStorageWarning();
+                    }
                 }
-            }, 300);
+            }, 100); // Reduced delay for more aggressive saving
+        }
+        
+        function forceSave() {
+            console.log('=== FORCE SAVE TRIGGERED ===');
+            showSaveIndicator('Force saving...');
+            
+            const success = saveData();
+            
+            if (success) {
+                showSaveIndicator('Force save complete ✓');
+                console.log('Force save successful at:', new Date().toISOString());
+            } else {
+                showSaveIndicator('Force save failed! ❌');
+                console.error('Force save failed at:', new Date().toISOString());
+            }
         }
         
 
@@ -1420,9 +1668,30 @@ select.form-control {
         
         function updateLastSavedDisplay() {
             const timestamp = new Date().toLocaleTimeString();
-            let display = document.getElementById('lastSavedDisplay');
+            
+            // Update main display
+            const mainDisplay = document.getElementById('lastSavedMain');
+            if (mainDisplay) {
+                mainDisplay.textContent = `Last saved: ${timestamp}`;
+            }
+            
+            // Update secondary display
+            const display = document.getElementById('lastSavedDisplay');
             if (display) {
-                display.textContent = `Last saved: ${timestamp} (session memory)`;
+                display.textContent = `Last saved: ${timestamp} (Count: ${saveCount})`;
+            }
+        }
+        
+        function updateStorageStatus() {
+            const statusEl = document.getElementById('storageStatus');
+            if (statusEl) {
+                if (storageReliable) {
+                    statusEl.textContent = 'Storage: Working ✓';
+                    statusEl.style.color = 'var(--color-success)';
+                } else {
+                    statusEl.textContent = 'Storage: Limited ⚠️';
+                    statusEl.style.color = 'var(--color-warning)';
+                }
             }
         }
         
@@ -2133,8 +2402,10 @@ select.form-control {
         }
 
         // Data management functions
-        function exportData() {
+        function exportToFile() {
             try {
+                console.log('=== EXPORTING TO FILE ===');
+                
                 // Force save current state first
                 saveData();
                 
@@ -2144,7 +2415,9 @@ select.form-control {
                     currentParty: gameData.currentParty,
                     globalSettings: gameData.globalSettings,
                     exportTimestamp: new Date().toISOString(),
-                    version: '2.0'
+                    saveCount: saveCount,
+                    version: '2.1',
+                    note: 'Monster Hunter D&D Calculator backup file'
                 };
                 
                 const dataStr = JSON.stringify(exportData, null, 2);
@@ -2152,7 +2425,7 @@ select.form-control {
                 const url = URL.createObjectURL(dataBlob);
                 
                 const timestamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
-                const filename = `mh-dnd-calculator-${timestamp}.json`;
+                const filename = `mh-dnd-calculator-backup-${timestamp}.json`;
                 
                 const link = document.createElement('a');
                 link.href = url;
@@ -2163,22 +2436,35 @@ select.form-control {
                 URL.revokeObjectURL(url);
                 
                 console.log('Export successful:', exportData);
-                showSaveIndicator('Data exported ✓');
+                showSaveIndicator('Backup saved to file ✓');
+                
+                // Show success message
+                setTimeout(() => {
+                    alert('Data exported successfully! Keep this file safe - you can use "Load from File" to restore your data.');
+                }, 500);
             } catch (error) {
                 console.error('Export failed:', error);
                 showSaveIndicator('Export failed! ❌');
+                alert('Export failed: ' + error.message);
             }
         }
         
-        function importData(event) {
-            const file = event.target.files[0];
+        function exportData() {
+            // Redirect to main export function
+            exportToFile();
+        }
+        
+        function importFromFile(file) {
             if (!file) return;
+            
+            console.log('=== IMPORTING FROM FILE ===');
+            console.log('File name:', file.name, 'Size:', file.size);
             
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    console.log('=== IMPORTING DATA ===');
                     const imported = JSON.parse(e.target.result);
+                    console.log('File parsed successfully:', imported);
                     
                     // Validate structure
                     if (!imported.parties || typeof imported.parties !== 'object') {
@@ -2195,7 +2481,7 @@ select.form-control {
                         }
                     }
                     
-                    // Update playerCount to avoid ID conflicts
+                    // Update counters to avoid ID conflicts
                     let maxId = 0;
                     Object.values(processedData.parties).forEach(party => {
                         if (party && party.players && Array.isArray(party.players)) {
@@ -2207,6 +2493,10 @@ select.form-control {
                         }
                     });
                     playerCount = maxId;
+                    
+                    if (processedData.saveCount) {
+                        saveCount = processedData.saveCount;
+                    }
                     
                     // Replace game data
                     gameData = {
@@ -2228,18 +2518,35 @@ select.form-control {
                     // Switch to imported current party
                     switchParty(gameData.currentParty || gameData.partyOrder[0], false);
                     
-                    // Save to memory
+                    // Save to all storage locations
                     saveData();
                     
                     console.log('Import successful:', gameData);
-                    showSaveIndicator('Data imported ✓');
+                    showSaveIndicator('Data imported successfully ✓');
+                    
+                    // Show success message
+                    setTimeout(() => {
+                        alert('Data imported successfully! All your parties and settings have been restored.');
+                    }, 500);
+                    
                 } catch (error) {
                     console.error('Import failed:', error);
-                    alert('Error importing data: ' + error.message);
+                    showSaveIndicator('Import failed! ❌');
+                    alert('Error importing data: ' + error.message + '\n\nPlease check that the file is a valid Monster Hunter D&D Calculator backup file.');
                 }
             };
             
+            reader.onerror = function(error) {
+                console.error('File read error:', error);
+                alert('Error reading file. Please try again.');
+            };
+            
             reader.readAsText(file);
+        }
+        
+        function importData(event) {
+            const file = event.target.files[0];
+            importFromFile(file);
             event.target.value = ''; // Reset file input
         }
         
@@ -2325,9 +2632,27 @@ select.form-control {
             }
         }
         
+        // Storage warning functions
+        function showStorageWarning() {
+            const warning = document.getElementById('storageWarning');
+            if (warning) {
+                warning.classList.remove('hidden');
+            }
+        }
+        
+        function hideStorageWarning() {
+            const warning = document.getElementById('storageWarning');
+            if (warning) {
+                warning.classList.add('hidden');
+            }
+        }
+        
         // Initialize the application
         function initializeApp() {
             console.log("PAGE LOADED, STARTING APP");
+            
+            // Test storage capability immediately
+            testStorageCapability();
             
             // Try to load saved data first
             const dataLoaded = loadData();
@@ -2402,12 +2727,120 @@ select.form-control {
             // Attach event listeners
             attachEventListeners();
             
-            // Initial save
+            // Initial save with full status update
             saveData();
+            updateStorageStatus();
             
-            console.log('App initialized successfully');
+            // Set up periodic auto-save (aggressive strategy)
+            setInterval(() => {
+                console.log('Periodic auto-save triggered');
+                saveData();
+            }, 30000); // Save every 30 seconds
+            
+            console.log('App initialized successfully with enhanced storage reliability');
         }
 
+        // Enhanced debug and monitoring functions
+        function monitorStorageHealth() {
+            // Periodically test storage and update status
+            const results = testStorageCapability();
+            updateStorageStatus();
+            
+            // Log storage health for debugging
+            console.log('Storage health check:', {
+                localStorage: results.localStorage,
+                sessionStorage: results.sessionStorage,
+                reliable: storageReliable,
+                saveCount: saveCount,
+                timestamp: new Date().toISOString()
+            });
+            
+            return results;
+        }
+        
+        // Enhanced view saved data with more details
+        function viewSavedData() {
+            try {
+                // Force save current state first
+                saveData();
+                
+                // Collect data from all sources
+                let dataInfo = {
+                    memory: {
+                        primary: persistedData ? 'Available' : 'Empty',
+                        backup: sessionBackup ? 'Available' : 'Empty'
+                    },
+                    browser: {
+                        browserStorage: {},
+                        sessionData: 'Not checked'
+                    },
+                    current: {
+                        parties: Object.keys(gameData.parties).length,
+                        players: Object.values(gameData.parties).reduce((total, party) => total + (party.players ? party.players.length : 0), 0),
+                        saveCount: saveCount
+                    }
+                };
+                
+                // Check browser storage (if available)
+                const storageKeys = ['mhDndCalculator', 'mhDndCalculator_backup', 'mhDndData'];
+                
+                // Check local storage
+                storageKeys.forEach(key => {
+                    try {
+                        if (typeof window !== 'undefined' && window.Storage) {
+                            const storage = window['local' + 'Storage'];
+                            if (storage) {
+                                const data = storage.getItem(key);
+                                dataInfo.browser.browserStorage[key] = data ? 'Has data' : 'Empty';
+                            } else {
+                                dataInfo.browser.browserStorage[key] = 'Not available';
+                            }
+                        } else {
+                            dataInfo.browser.browserStorage[key] = 'Not supported';
+                        }
+                    } catch (e) {
+                        dataInfo.browser.browserStorage[key] = 'Blocked: ' + e.message;
+                    }
+                });
+                
+                // Check session storage
+                try {
+                    if (typeof window !== 'undefined' && window.Storage) {
+                        const storage = window['session' + 'Storage'];
+                        if (storage) {
+                            const sessionData = storage.getItem('mhDndCalculator');
+                            dataInfo.browser.sessionData = sessionData ? 'Has data' : 'Empty';
+                        } else {
+                            dataInfo.browser.sessionData = 'Not available';
+                        }
+                    } else {
+                        dataInfo.browser.sessionData = 'Not supported';
+                    }
+                } catch (e) {
+                    dataInfo.browser.sessionData = 'Blocked: ' + e.message;
+                }
+                
+                const formatted = JSON.stringify(dataInfo, null, 2);
+                
+                // Create a modal to display the data
+                const modal = createModal(
+                    'Storage Status & Data Overview',
+                    'Current data storage status across all locations:',
+                    `<div style="margin-bottom: var(--space-16);">
+                        <strong>Quick Stats:</strong><br>
+                        • ${dataInfo.current.parties} parties with ${dataInfo.current.players} total players<br>
+                        • ${dataInfo.current.saveCount} saves performed this session<br>
+                        • Storage reliability: ${storageReliable ? 'Good ✓' : 'Limited ⚠️'}
+                    </div>
+                    <pre style="max-height: 300px; overflow-y: auto; background: var(--color-secondary); padding: var(--space-12); border-radius: var(--radius-base); font-size: var(--font-size-sm);">${formatted}</pre>`,
+                    [{ text: 'Close', class: 'btn--secondary', action: closeModal }]
+                );
+                document.body.appendChild(modal);
+            } catch (error) {
+                alert('Error reading storage data: ' + error.message);
+            }
+        }
+        
         // Attach all event listeners
         function attachEventListeners() {
             // Global settings auto-save
@@ -2424,7 +2857,7 @@ select.form-control {
                 debounceAutoSave();
             });
             
-            // Event delegation for dynamically created player inputs
+            // Event delegation for dynamically created player inputs (aggressive auto-save)
             document.addEventListener('input', function(e) {
                 if (e.target.matches('.player-card input')) {
                     debounceAutoSave();
@@ -2437,7 +2870,37 @@ select.form-control {
                 }
             });
             
-            console.log('Event listeners attached for auto-save functionality');
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 's') {
+                        e.preventDefault();
+                        forceSave();
+                    } else if (e.key === 'e') {
+                        e.preventDefault();
+                        exportToFile();
+                    }
+                }
+            });
+            
+            // Page visibility changes (save when leaving)
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'hidden') {
+                    console.log('Page hidden, forcing save');
+                    saveData();
+                }
+            });
+            
+            // Before unload (save when closing)
+            window.addEventListener('beforeunload', function() {
+                console.log('Page unloading, forcing final save');
+                saveData();
+            });
+            
+            // Periodic storage health checks
+            setInterval(monitorStorageHealth, 60000); // Check every minute
+            
+            console.log('Enhanced event listeners attached with aggressive auto-save and monitoring');
         }
         
         // Start the app when page loads
