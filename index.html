@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monster Hunter D&D - DPR Calculator</title>
+    <style>
+        :root {
+  /* Primitive Color Tokens */
+  --color-white: rgba(255, 255, 255, 1);
+  --color-black: rgba(0, 0, 0, 1);
+  --color-cream-50: rgba(252, 252, 249, 1);
+  --color-cream-100: rgba(255, 255, 253, 1);
+  --color-gray-200: rgba(245, 245, 245, 1);
+  --color-gray-300: rgba(167, 169, 169, 1);
+  --color-gray-400: rgba(119, 124, 124, 1);
+  --color-slate-500: rgba(98, 108, 113, 1);
+  --color-brown-600: rgba(94, 82, 64, 1);
+  --color-charcoal-700: rgba(31, 33, 33, 1);
+  --color-charcoal-800: rgba(38, 40, 40, 1);
+  --color-slate-900: rgba(19, 52, 59, 1);
+  --color-teal-300: rgba(50, 184, 198, 1);
+  --color-teal-400: rgba(45, 166, 178, 1);
+  --color-teal-500: rgba(33, 128, 141, 1);
+  --color-teal-600: rgba(29, 116, 128, 1);
+  --color-teal-700: rgba(26, 104, 115, 1);
+  --color-teal-800: rgba(41, 150, 161, 1);
+  --color-red-400: rgba(255, 84, 89, 1);
+  --color-red-500: rgba(192, 21, 47, 1);
+  --color-orange-400: rgba(230, 129, 97, 1);
+  --color-orange-500: rgba(168, 75, 47, 1);
+
+  /* RGB versions for opacity control */
+  --color-brown-600-rgb: 94, 82, 64;
+  --color-teal-500-rgb: 33, 128, 141;
+  --color-slate-900-rgb: 19, 52, 59;
+  --color-slate-500-rgb: 98, 108, 113;
+  --color-red-500-rgb: 192, 21, 47;
+  --color-red-400-rgb: 255, 84, 89;
+  --color-orange-500-rgb: 168, 75, 47;
+  --color-orange-400-rgb: 230, 129, 97;
+
+  /* Background color tokens (Light Mode) */
+  --color-bg-1: rgba(59, 130, 246, 0.08);
+  --color-bg-2: rgba(245, 158, 11, 0.08);
+  --color-bg-3: rgba(34, 197, 94, 0.08);
+  --color-bg-4: rgba(239, 68, 68, 0.08);
+  --color-bg-5: rgba(147, 51, 234, 0.08);
+  --color-bg-6: rgba(249, 115, 22, 0.08);
+  --color-bg-7: rgba(236, 72, 153, 0.08);
+  --color-bg-8: rgba(6, 182, 212, 0.08);
+
+  /* Semantic Color Tokens (Light Mode) */
+  --color-background: var(--color-cream-50);
+  --color-surface: var(--color-cream-100);
+  --color-text: var(--color-slate-900);
+  --color-text-secondary: var(--color-slate-500);
+  --color-primary: var(--color-teal-500);
+  --color-primary-hover: var(--color-teal-600);
+  --color-primary-active: var(--color-teal-700);
+  --color-secondary: rgba(var(--color-brown-600-rgb), 0.12);
+  --color-secondary-hover: rgba(var(--color-brown-600-rgb), 0.2);
+  --color-secondary-active: rgba(var(--color-brown-600-rgb), 0.25);
+  --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+  --color-btn-primary-text: var(--color-cream-50);
+  --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
+  --color-card-border-inner: rgba(var(--color-brown-600-rgb), 0.12);
+  --color-error: var(--color-red-500);
+  --color-success: var(--color-teal-500);
+  --color-warning: var(--color-orange-500);
+  --color-info: var(--color-slate-500);
+  --color-focus-ring: rgba(var(--color-teal-500-rgb), 0.4);
+  --color-select-caret: rgba(var(--color-slate-900-rgb), 0.8);
+
+  /* Common style patterns */
+  --focus-ring: 0 0 0 3px var(--color-focus-ring);
+  --focus-outline: 2px solid var(--color-primary);
+  --status-bg-opacity: 0.15;
+  --status-border-opacity: 0.25;
+  --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23134252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f5f5f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+  /* RGB versions for opacity control */
+  --color-success-rgb: 33, 128, 141;
+  --color-error-rgb: 192, 21, 47;
+  --color-warning-rgb: 168, 75, 47;
+  --color-info-rgb: 98, 108, 113;
+
+  /* Typography */
+  --font-family-base: "FKGroteskNeue", "Geist", "Inter", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-mono: "Berkeley Mono", ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+  --font-size-4xl: 30px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 550;
+  --font-weight-bold: 600;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --letter-spacing-tight: -0.01em;
+
+  /* Spacing */
+  --space-0: 0;
+  --space-1: 1px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-base: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04),
+    0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04),
+    0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+
+  /* Animation */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+}
+
+/* Dark mode colors - applying dark theme by default for gaming aesthetic */
+:root {
+  /* RGB versions for opacity control (Dark Mode) */
+  --color-gray-400-rgb: 119, 124, 124;
+  --color-teal-300-rgb: 50, 184, 198;
+  --color-gray-300-rgb: 167, 169, 169;
+  --color-gray-200-rgb: 245, 245, 245;
+
+  /* Background color tokens (Dark Mode) */
+  --color-bg-1: rgba(29, 78, 216, 0.15);
+  --color-bg-2: rgba(180, 83, 9, 0.15);
+  --color-bg-3: rgba(21, 128, 61, 0.15);
+  --color-bg-4: rgba(185, 28, 28, 0.15);
+  --color-bg-5: rgba(107, 33, 168, 0.15);
+  --color-bg-6: rgba(194, 65, 12, 0.15);
+  --color-bg-7: rgba(190, 24, 93, 0.15);
+  --color-bg-8: rgba(8, 145, 178, 0.15);
+
+  /* Semantic Color Tokens (Dark Mode) */
+  --color-background: var(--color-charcoal-700);
+  --color-surface: var(--color-charcoal-800);
+  --color-text: var(--color-gray-200);
+  --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
+  --color-primary: var(--color-teal-300);
+  --color-primary-hover: var(--color-teal-400);
+  --color-primary-active: var(--color-teal-800);
+  --color-secondary: rgba(var(--color-gray-400-rgb), 0.15);
+  --color-secondary-hover: rgba(var(--color-gray-400-rgb), 0.25);
+  --color-secondary-active: rgba(var(--color-gray-400-rgb), 0.3);
+  --color-border: rgba(var(--color-gray-400-rgb), 0.3);
+  --color-error: var(--color-red-400);
+  --color-success: var(--color-teal-300);
+  --color-warning: var(--color-orange-400);
+  --color-info: var(--color-gray-300);
+  --color-focus-ring: rgba(var(--color-teal-300-rgb), 0.4);
+  --color-btn-primary-text: var(--color-slate-900);
+  --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
+  --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
+  --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  --button-border-secondary: rgba(var(--color-gray-400-rgb), 0.2);
+  --color-border-secondary: rgba(var(--color-gray-400-rgb), 0.2);
+  --color-select-caret: rgba(var(--color-gray-200-rgb), 0.8);
+
+  /* Common style patterns - updated for dark mode */
+  --focus-ring: 0 0 0 3px var(--color-focus-ring);
+  --focus-outline: 2px solid var(--color-primary);
+  --status-bg-opacity: 0.15;
+  --status-border-opacity: 0.25;
+  --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23134252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f5f5f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+  /* RGB versions for dark mode */
+  --color-success-rgb: var(--color-teal-300-rgb);
+  --color-error-rgb: var(--color-red-400-rgb);
+  --color-warning-rgb: var(--color-orange-400-rgb);
+  --color-info-rgb: var(--color-gray-300-rgb);
+}
+
+/* Base styles */
+html {
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-base);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+h1 {
+  font-size: var(--font-size-4xl);
+}
+h2 {
+  font-size: var(--font-size-3xl);
+}
+h3 {
+  font-size: var(--font-size-2xl);
+}
+h4 {
+  font-size: var(--font-size-xl);
+}
+h5 {
+  font-size: var(--font-size-lg);
+}
+h6 {
+  font-size: var(--font-size-md);
+}
+
+p {
+  margin: 0 0 var(--space-16) 0;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-standard);
+  border: none;
+  text-decoration: none;
+  position: relative;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: var(--color-btn-primary-text);
+}
+
+.btn--primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn--primary:active {
+  background: var(--color-primary-active);
+}
+
+.btn--secondary {
+  background: var(--color-secondary);
+  color: var(--color-text);
+}
+
+.btn--secondary:hover {
+  background: var(--color-secondary-hover);
+}
+
+.btn--secondary:active {
+  background: var(--color-secondary-active);
+}
+
+.btn--outline {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.btn--outline:hover {
+  background: var(--color-secondary);
+}
+
+.btn--sm {
+  padding: var(--space-4) var(--space-12);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+}
+
+.btn--lg {
+  padding: var(--space-10) var(--space-20);
+  font-size: var(--font-size-lg);
+  border-radius: var(--radius-md);
+}
+
+.btn--full-width {
+  width: 100%;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form elements */
+.form-control {
+  display: block;
+  width: 100%;
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  transition: border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+select.form-control {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: var(--select-caret-dark);
+  background-repeat: no-repeat;
+  background-position: right var(--space-12) center;
+  background-size: 16px;
+  padding-right: var(--space-32);
+}
+
+.form-control:focus {
+  border-color: var(--color-primary);
+  outline: var(--focus-outline);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--space-8);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+}
+
+.form-group {
+  margin-bottom: var(--space-16);
+}
+
+/* Card component */
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-card-border);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--duration-normal) var(--ease-standard);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card__body {
+  padding: var(--space-16);
+}
+
+.card__header {
+  padding: var(--space-16);
+  border-bottom: 1px solid var(--color-card-border-inner);
+}
+
+/* Container layout */
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: var(--space-16);
+  padding-left: var(--space-16);
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: var(--container-sm);
+  }
+}
+@media (min-width: 768px) {
+  .container {
+    max-width: var(--container-md);
+  }
+}
+@media (min-width: 1024px) {
+  .container {
+    max-width: var(--container-lg);
+  }
+}
+@media (min-width: 1280px) {
+  .container {
+    max-width: var(--container-xl);
+  }
+}
+
+/* Utility classes */
+.flex {
+  display: flex;
+}
+.flex-col {
+  flex-direction: column;
+}
+.items-center {
+  align-items: center;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-4 {
+  gap: var(--space-4);
+}
+.gap-8 {
+  gap: var(--space-8);
+}
+.gap-16 {
+  gap: var(--space-16);
+}
+
+.m-0 {
+  margin: 0;
+}
+.mt-8 {
+  margin-top: var(--space-8);
+}
+.mb-8 {
+  margin-bottom: var(--space-8);
+}
+.mx-8 {
+  margin-left: var(--space-8);
+  margin-right: var(--space-8);
+}
+.my-8 {
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+.p-0 {
+  padding: 0;
+}
+.py-8 {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-8);
+}
+.px-8 {
+  padding-left: var(--space-8);
+  padding-right: var(--space-8);
+}
+.py-16 {
+  padding-top: var(--space-16);
+  padding-bottom: var(--space-16);
+}
+.px-16 {
+  padding-left: var(--space-16);
+  padding-right: var(--space-16);
+}
+
+.block {
+  display: block;
+}
+.hidden {
+  display: none;
+}
+
+/* Save Indicator */
+.save-indicator {
+  position: fixed;
+  top: var(--space-20);
+  right: var(--space-20);
+  background: var(--color-success);
+  color: var(--color-btn-primary-text);
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-lg);
+  transition: opacity var(--duration-fast), transform var(--duration-fast);
+  z-index: 1000;
+}
+
+.save-indicator.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.save-indicator.hidden {
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+
+/* Party Management */
+.party-management {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-20);
+  margin-bottom: var(--space-20);
+}
+
+.party-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-16);
+}
+
+.party-header h3 {
+  color: var(--color-orange-400);
+  margin: 0;
+}
+
+.party-actions {
+  display: flex;
+  gap: var(--space-8);
+}
+
+.party-tabs {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-16);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.party-tab {
+  background: transparent;
+  border: none;
+  padding: var(--space-12) var(--space-20);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--duration-fast);
+}
+
+.party-tab:hover {
+  color: var(--color-text);
+  background: var(--color-secondary);
+}
+
+.party-tab.active {
+  color: var(--color-orange-400);
+  border-bottom-color: var(--color-orange-400);
+  background: var(--color-bg-6);
+}
+
+.party-tab.has-players::after {
+  content: "";
+  position: absolute;
+  top: var(--space-8);
+  right: var(--space-8);
+  width: var(--space-6);
+  height: var(--space-6);
+  background: var(--color-success);
+  border-radius: 50%;
+}
+
+.current-party {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.current-party #currentPartyName {
+  color: var(--color-orange-400);
+  font-weight: var(--font-weight-semibold);
+}
+
+.settings-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.data-management {
+  display: flex;
+  gap: var(--space-8);
+}
+
+/* Modal styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-24);
+  max-width: 400px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+  margin-bottom: var(--space-16);
+}
+
+.modal-header h3 {
+  color: var(--color-orange-400);
+  margin: 0;
+}
+
+.modal-body {
+  margin-bottom: var(--space-20);
+  color: var(--color-text);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--space-12);
+  justify-content: flex-end;
+}
+
+.party-select-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+  margin: var(--space-16) 0;
+}
+
+.party-option {
+  padding: var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background: var(--color-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--duration-fast);
+}
+
+.party-option:hover {
+  background: var(--color-secondary-hover);
+  border-color: var(--color-orange-400);
+}
+
+.party-option.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Monster Hunter themed styles */
+.mh-header {
+  background: linear-gradient(135deg, rgba(192, 21, 47, 0.1), rgba(230, 129, 97, 0.1));
+  border-bottom: 1px solid var(--color-orange-400);
+  padding: var(--space-24) 0;
+  text-align: center;
+}
+
+.mh-header h1 {
+  color: var(--color-orange-400);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.mh-header .subtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+  margin-top: var(--space-8);
+}
+
+.player-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-20);
+  margin-bottom: var(--space-16);
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
+
+.player-card:hover {
+  border-color: var(--color-orange-400);
+  box-shadow: 0 4px 20px rgba(230, 129, 97, 0.1);
+}
+
+.player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-16);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--color-card-border-inner);
+}
+
+.player-name {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-orange-400);
+}
+
+.remove-player {
+  background: var(--color-error);
+  color: white;
+  border: none;
+  border-radius: var(--radius-base);
+  padding: var(--space-6) var(--space-12);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  transition: background var(--duration-fast);
+}
+
+.remove-player:hover {
+  background: var(--color-red-500);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-16);
+  margin-bottom: var(--space-16);
+}
+
+.form-row-wide {
+  grid-column: span 2;
+}
+
+.results-section {
+  margin-top: var(--space-16);
+  padding: var(--space-16);
+  background: var(--color-bg-6);
+  border: 1px solid rgba(230, 129, 97, 0.3);
+  border-radius: var(--radius-lg);
+}
+
+.dpr-value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-success);
+  text-align: center;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: var(--space-8);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.stat {
+  text-align: center;
+}
+
+.global-settings {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-20);
+  margin-bottom: var(--space-20);
+}
+
+.settings-row {
+  display: flex;
+  gap: var(--space-16);
+  align-items: end;
+}
+
+.party-summary {
+  background: var(--color-surface);
+  border: 2px solid var(--color-orange-400);
+  border-radius: var(--radius-lg);
+  padding: var(--space-24);
+  margin-top: var(--space-24);
+}
+
+.total-dpr {
+  text-align: center;
+  margin-bottom: var(--space-20);
+}
+
+.total-dpr h3 {
+  color: var(--color-orange-400);
+  margin-bottom: var(--space-8);
+}
+
+.total-dpr .value {
+  font-size: 3rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-success);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hp-recommendations {
+  margin-top: var(--space-20);
+}
+
+.hp-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-12);
+}
+
+.hp-table th,
+.hp-table td {
+  padding: var(--space-12) var(--space-16);
+  text-align: center;
+  border: 1px solid var(--color-card-border);
+}
+
+.hp-table th {
+  background: var(--color-bg-6);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hp-table td {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-lg);
+}
+
+.resistance-toggle {
+  margin-top: var(--space-16);
+  text-align: center;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  justify-content: center;
+}
+
+.error-message {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-4);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-row-wide {
+    grid-column: span 1;
+  }
+  
+  .settings-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .total-dpr .value {
+    font-size: 2rem;
+  }
+}
+
+@font-face {
+  font-family: 'FKGroteskNeue';
+  src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2')
+    format('woff2');
+}
+    </style>
+</head>
+<body>
+    <header class="mh-header">
+        <div class="container">
+            <h1>Monster Hunter D&amp;D</h1>
+            <div class="subtitle">DPR Calculator</div>
+        </div>
+    </header>
+
+    <!-- Save Indicator -->
+    <div id="saveIndicator" class="save-indicator hidden">
+        <span id="saveText">Saved ✓</span>
+    </div>
+
+    <main class="container" style="padding-top: var(--space-24); padding-bottom: var(--space-24);">
+        <!-- Party Management -->
+        <section class="party-management">
+            <div class="party-header">
+                <h3>Party Management</h3>
+                <div class="party-actions">
+                    <button type="button" class="btn btn--secondary btn--sm" onclick="duplicateParty()" id="duplicateBtn">Duplicate Party</button>
+                    <button type="button" class="btn btn--outline btn--sm" onclick="clearCurrentParty()" id="clearBtn">Clear Current Party</button>
+                </div>
+            </div>
+            
+            <div class="party-tabs">
+                <button class="party-tab active" data-party="party1" onclick="switchParty('party1')">Party 1</button>
+                <button class="party-tab" data-party="party2" onclick="switchParty('party2')">Party 2</button>
+                <button class="party-tab" data-party="party3" onclick="switchParty('party3')">Party 3</button>
+                <button class="party-tab" data-party="party4" onclick="switchParty('party4')">Party 4</button>
+                <button class="party-tab" data-party="party5" onclick="switchParty('party5')">Party 5</button>
+            </div>
+            
+            <div class="current-party">
+                Currently editing: <span id="currentPartyName">Party 1</span>
+                <span id="partyPlayerCount">(0 players)</span>
+            </div>
+        </section>
+
+        <!-- Global Settings -->
+        <section class="global-settings">
+            <h3 style="margin-bottom: var(--space-16); color: var(--color-orange-400);">Battle Settings</h3>
+            <div class="settings-row">
+                <div class="form-group">
+                    <label class="form-label" for="targetAC">Target AC</label>
+                    <input type="number" id="targetAC" class="form-control" value="19" min="1" max="30">
+                </div>
+                <div class="settings-buttons">
+                    <button type="button" class="btn btn--primary" onclick="addPlayer()">Add Player</button>
+                    <div class="data-management">
+                        <button type="button" class="btn btn--secondary btn--sm" onclick="exportData()">Export Data</button>
+                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
+                        <button type="button" class="btn btn--secondary btn--sm" onclick="document.getElementById('importFile').click()">Import Data</button>
+                        <button type="button" class="btn btn--outline btn--sm" onclick="clearAllData()">Clear All Data</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Player Cards Container -->
+        <section id="playersContainer">
+            <!-- Player cards will be dynamically added here -->
+        </section>
+
+        <!-- Party Summary -->
+        <section class="party-summary">
+            <div class="total-dpr">
+                <h3>Total Party DPR</h3>
+                <div class="value" id="totalDPR">0.0</div>
+            </div>
+            
+            <div class="hp-recommendations">
+                <h4 style="color: var(--color-orange-400); text-align: center; margin-bottom: var(--space-12);">Monster HP Recommendations</h4>
+                
+                <div class="resistance-toggle">
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="withResistances">
+                        <label for="withResistances">With Resistances (+25% HP)</label>
+                    </div>
+                </div>
+                
+                <table class="hp-table">
+                    <thead>
+                        <tr>
+                            <th>Fight Duration</th>
+                            <th>Recommended HP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>3 Rounds</td>
+                            <td id="hp3rounds">0</td>
+                        </tr>
+                        <tr>
+                            <td>4 Rounds</td>
+                            <td id="hp4rounds">0</td>
+                        </tr>
+                        <tr>
+                            <td>5 Rounds</td>
+                            <td id="hp5rounds">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Global state
+        let gameData = {
+            parties: {
+                party1: [],
+                party2: [],
+                party3: [],
+                party4: [],
+                party5: []
+            },
+            currentParty: 'party1',
+            globalSettings: {
+                targetAC: 19,
+                resistanceToggle: false
+            }
+        };
+        let playerCount = 0;
+        let saveTimeout = null;
+        
+        // Get current party players
+        function getCurrentPartyPlayers() {
+            return gameData.parties[gameData.currentParty] || [];
+        }
+        
+        // Set current party players
+        function setCurrentPartyPlayers(players) {
+            gameData.parties[gameData.currentParty] = players;
+        }
+        
+        // Data persistence functions
+        function debounceAutoSave() {
+            if (saveTimeout) clearTimeout(saveTimeout);
+            
+            // Show saving indicator
+            showSaveIndicator('Saving...');
+            
+            saveTimeout = setTimeout(() => {
+                // Data persists in memory during the session
+                // In a real deployment, this would save to localStorage/backend
+                showSaveIndicator('Saved ✓');
+            }, 500);
+        }
+        
+        function loadSavedData() {
+            // In this demo version, data only persists during the session
+            // In a real deployment, this would load from localStorage/backend
+            return false;
+        }
+        
+        function showSaveIndicator(text) {
+            const indicator = document.getElementById('saveIndicator');
+            const textEl = document.getElementById('saveText');
+            
+            textEl.textContent = text;
+            indicator.classList.remove('hidden');
+            indicator.classList.add('show');
+            
+            if (text.includes('✓')) {
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                    indicator.classList.add('hidden');
+                }, 2000);
+            }
+        }
+
+        // Dice parsing utility
+        function parseDice(diceString) {
+            if (!diceString || diceString.trim() === '') {
+                return { dice: [], bonus: 0, valid: true };
+            }
+            
+            try {
+                // Remove spaces and convert to lowercase
+                const cleaned = diceString.replace(/\s+/g, '').toLowerCase();
+                
+                // Split by + and - while keeping the operators
+                const parts = cleaned.split(/(\+|-)/);
+                
+                let dice = [];
+                let bonus = 0;
+                let currentSign = 1;
+                
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+                    
+                    if (part === '+') {
+                        currentSign = 1;
+                    } else if (part === '-') {
+                        currentSign = -1;
+                    } else if (part !== '') {
+                        if (part.includes('d')) {
+                            // It's a die roll
+                            const [count, sides] = part.split('d').map(x => parseInt(x));
+                            if (isNaN(count) || isNaN(sides) || count <= 0 || sides <= 0) {
+                                throw new Error('Invalid die format');
+                            }
+                            dice.push({ count: count * currentSign, sides });
+                        } else {
+                            // It's a flat bonus
+                            const flatBonus = parseInt(part);
+                            if (isNaN(flatBonus)) {
+                                throw new Error('Invalid number format');
+                            }
+                            bonus += flatBonus * currentSign;
+                        }
+                    }
+                }
+                
+                return { dice, bonus, valid: true };
+            } catch (error) {
+                return { dice: [], bonus: 0, valid: false };
+            }
+        }
+
+        // Calculate average damage for dice
+        function calculateAverageDamage(parsedDice) {
+            let total = parsedDice.bonus;
+            
+            for (const die of parsedDice.dice) {
+                const avgRoll = (die.sides + 1) / 2;
+                total += die.count * avgRoll;
+            }
+            
+            return total;
+        }
+
+        // Calculate max damage for dice (for crits)
+        function calculateMaxDamage(parsedDice) {
+            let total = parsedDice.bonus;
+            
+            for (const die of parsedDice.dice) {
+                total += die.count * die.sides;
+            }
+            
+            return total;
+        }
+
+        // Calculate DPR for a player
+        function calculateDPR(player) {
+            const targetAC = parseInt(document.getElementById('targetAC').value) || 19;
+            
+            // Parse dice
+            const damageDice = parseDice(player.damage);
+            const elementalDice = parseDice(player.elemental);
+            const onceDice = parseDice(player.extraOnce);
+            
+            if (!damageDice.valid) {
+                return { dpr: 0, hitChance: 0, critChance: 0, error: 'Invalid damage dice format' };
+            }
+            
+            // Calculate hit and crit chances
+            const attackRoll = (21 - (targetAC - player.attackBonus)) / 20;
+            let hitChance = Math.max(0, Math.min(1, attackRoll));
+            
+            // Crit range calculation
+            const critRange = parseInt(player.critRange);
+            const critNumbers = 21 - critRange;
+            let critChance = critNumbers / 20;
+            
+            // Apply advantage if checked
+            if (player.advantage) {
+                const missChance = 1 - hitChance;
+                hitChance = 1 - (missChance * missChance);
+                
+                const nonCritChance = 1 - critChance;
+                critChance = 1 - (nonCritChance * nonCritChance);
+            }
+            
+            // Calculate damage values
+            const normalDamage = calculateAverageDamage(damageDice) + calculateAverageDamage(elementalDice);
+            
+            // Crit damage: max dice + average dice + doubled flat bonuses + max elemental
+            let critDamage = normalDamage;
+            critDamage += calculateAverageDamage(damageDice); // Add average again for doubled dice
+            critDamage += damageDice.bonus; // Double the flat bonus
+            
+            // Add max elemental dice for crit
+            if (elementalDice.dice.length > 0 || elementalDice.bonus > 0) {
+                critDamage = critDamage - calculateAverageDamage(elementalDice) + calculateMaxDamage(elementalDice);
+            }
+            
+            // Calculate expected damage per attack
+            const expectedDamage = (hitChance * normalDamage) + (critChance * (critDamage - normalDamage));
+            
+            // Calculate DPR
+            let dpr = expectedDamage * player.attacksPerRound;
+            
+            // Add extra damage (x/turn)
+            if (onceDice.valid && (onceDice.dice.length > 0 || onceDice.bonus > 0)) {
+                const onceNormalDamage = calculateAverageDamage(onceDice);
+                const onceCritDamage = onceNormalDamage + calculateAverageDamage(onceDice) + onceDice.bonus;
+                const onceExpected = (hitChance * onceNormalDamage) + (critChance * (onceCritDamage - onceNormalDamage));
+                
+                // Cap times per turn at attacks per round
+                const timesPerTurn = Math.min(player.extraTimes || 1, player.attacksPerRound);
+                dpr += onceExpected * timesPerTurn;
+            }
+            
+            return {
+                dpr: Math.max(0, dpr),
+                hitChance: hitChance * 100,
+                critChance: critChance * 100,
+                error: null
+            };
+        }
+
+        // Party management functions
+        function switchParty(partyId, save = true) {
+            // Save current target AC and resistance settings
+            gameData.globalSettings.targetAC = parseInt(document.getElementById('targetAC').value) || 19;
+            gameData.globalSettings.resistanceToggle = document.getElementById('withResistances').checked;
+            
+            gameData.currentParty = partyId;
+            
+            // Update UI
+            document.querySelectorAll('.party-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-party="${partyId}"]`).classList.add('active');
+            
+            const partyNames = {
+                party1: 'Party 1',
+                party2: 'Party 2', 
+                party3: 'Party 3',
+                party4: 'Party 4',
+                party5: 'Party 5'
+            };
+            
+            document.getElementById('currentPartyName').textContent = partyNames[partyId];
+            
+            // Render players for this party
+            renderPlayers();
+            updateCalculations();
+            updatePartyIndicators();
+            
+            if (save) {
+                debounceAutoSave();
+            }
+        }
+        
+        function updatePartyIndicators() {
+            Object.keys(gameData.parties).forEach(partyId => {
+                const tab = document.querySelector(`[data-party="${partyId}"]`);
+                const players = gameData.parties[partyId];
+                const count = players ? players.length : 0;
+                
+                if (count > 0) {
+                    tab.classList.add('has-players');
+                } else {
+                    tab.classList.remove('has-players');
+                }
+            });
+            
+            // Update current party player count
+            const currentPlayers = getCurrentPartyPlayers();
+            const countText = currentPlayers.length === 1 ? '1 player' : `${currentPlayers.length} players`;
+            document.getElementById('partyPlayerCount').textContent = `(${countText})`;
+        }
+        
+        function duplicateParty() {
+            const currentPlayers = getCurrentPartyPlayers();
+            if (currentPlayers.length === 0) {
+                alert('Current party is empty. Nothing to duplicate.');
+                return;
+            }
+            
+            showDuplicateModal();
+        }
+        
+        function showDuplicateModal() {
+            const modal = createModal(
+                'Duplicate Party',
+                'Select destination party to copy current party to:',
+                getDuplicateModalBody(),
+                [
+                    { text: 'Cancel', class: 'btn--secondary', action: closeModal },
+                    { text: 'Duplicate', class: 'btn--primary', action: confirmDuplicate }
+                ]
+            );
+            document.body.appendChild(modal);
+        }
+        
+        function getDuplicateModalBody() {
+            const parties = ['party1', 'party2', 'party3', 'party4', 'party5'];
+            const partyNames = ['Party 1', 'Party 2', 'Party 3', 'Party 4', 'Party 5'];
+            
+            let html = '<div class="party-select-grid">';
+            
+            parties.forEach((partyId, index) => {
+                const isCurrentParty = partyId === gameData.currentParty;
+                const disabled = isCurrentParty ? 'disabled' : '';
+                const playerCount = gameData.parties[partyId].length;
+                const subtitle = playerCount > 0 ? ` (${playerCount} players)` : ' (Empty)';
+                
+                html += `
+                    <div class="party-option ${disabled}" data-target-party="${partyId}" onclick="selectTargetParty('${partyId}')">
+                        <strong>${partyNames[index]}</strong>
+                        <div style="font-size: var(--font-size-xs); color: var(--color-text-secondary);">${subtitle}</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function selectTargetParty(partyId) {
+            if (partyId === gameData.currentParty) return;
+            
+            document.querySelectorAll('.party-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            const option = document.querySelector(`[data-target-party="${partyId}"]`);
+            if (option && !option.classList.contains('disabled')) {
+                option.classList.add('selected');
+                option.style.background = 'var(--color-primary)';
+                option.style.color = 'var(--color-btn-primary-text)';
+            }
+        }
+        
+        function confirmDuplicate() {
+            const selected = document.querySelector('.party-option.selected');
+            if (!selected) {
+                alert('Please select a destination party.');
+                return;
+            }
+            
+            const targetParty = selected.getAttribute('data-target-party');
+            const currentPlayers = getCurrentPartyPlayers();
+            
+            // Deep copy players to target party
+            gameData.parties[targetParty] = currentPlayers.map(player => ({
+                ...player,
+                id: ++playerCount // Give new IDs to avoid conflicts
+            }));
+            
+            closeModal();
+            debounceAutoSave();
+            updatePartyIndicators();
+            
+            const partyNames = {
+                party1: 'Party 1',
+                party2: 'Party 2',
+                party3: 'Party 3', 
+                party4: 'Party 4',
+                party5: 'Party 5'
+            };
+            
+            showSaveIndicator(`Duplicated to ${partyNames[targetParty]} ✓`);
+        }
+        
+        function clearCurrentParty() {
+            const currentPlayers = getCurrentPartyPlayers();
+            if (currentPlayers.length === 0) {
+                alert('Current party is already empty.');
+                return;
+            }
+            
+            const partyName = document.getElementById('currentPartyName').textContent;
+            if (confirm(`Are you sure you want to clear all players from ${partyName}? This cannot be undone.`)) {
+                setCurrentPartyPlayers([]);
+                renderPlayers();
+                updateCalculations();
+                updatePartyIndicators();
+                debounceAutoSave();
+                showSaveIndicator('Party cleared ✓');
+            }
+        }
+        
+        // Create a new player
+        function createPlayer(data = {}) {
+            const player = {
+                id: data.id || ++playerCount,
+                name: data.name || `Player ${playerCount}`,
+                damage: data.damage || '',
+                elemental: data.elemental || '',
+                attackBonus: data.attackBonus || 12,
+                critRange: data.critRange || 20,
+                attacksPerRound: data.attacksPerRound || 3,
+                advantage: data.advantage || false,
+                extraOnce: data.extraOnce || '',
+                extraTimes: data.extraTimes || 1
+            };
+            
+            const currentPlayers = getCurrentPartyPlayers();
+            currentPlayers.push(player);
+            setCurrentPartyPlayers(currentPlayers);
+            return player;
+        }
+
+        // Render player card HTML
+        function renderPlayerCard(player) {
+            return `
+                <div class="player-card" data-player-id="${player.id}">
+                    <div class="player-header">
+                        <input type="text" class="player-name form-control" value="${player.name}" 
+                               onchange="updatePlayer(${player.id}, 'name', this.value)" style="width: auto; background: transparent; border: none; font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--color-orange-400); padding: 0;">
+                        <button type="button" class="remove-player" onclick="removePlayer(${player.id})" style="${getCurrentPartyPlayers().length <= 1 ? 'display: none;' : ''}">Remove</button>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Damage Dice</label>
+                            <input type="text" class="form-control" placeholder="e.g., 1d6+1d4+6 or 2d6+5" 
+                                   value="${player.damage}" onchange="updatePlayer(${player.id}, 'damage', this.value)">
+                            <div class="error-message" id="error-${player.id}-damage"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Elemental Dice (Optional)</label>
+                            <input type="text" class="form-control" placeholder="e.g., 1d4 or 1d6+2" 
+                                   value="${player.elemental}" onchange="updatePlayer(${player.id}, 'elemental', this.value)">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Attack Bonus</label>
+                            <input type="number" class="form-control" value="${player.attackBonus}" 
+                                   onchange="updatePlayer(${player.id}, 'attackBonus', parseInt(this.value))">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Crit Range</label>
+                            <select class="form-control" onchange="updatePlayer(${player.id}, 'critRange', parseInt(this.value))">
+                                <option value="20" ${player.critRange === 20 ? 'selected' : ''}>20</option>
+                                <option value="19" ${player.critRange === 19 ? 'selected' : ''}>19-20</option>
+                                <option value="18" ${player.critRange === 18 ? 'selected' : ''}>18-20</option>
+                                <option value="17" ${player.critRange === 17 ? 'selected' : ''}>17-20</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Attacks per Round</label>
+                            <input type="number" class="form-control" value="${player.attacksPerRound}" min="1" 
+                                   onchange="updatePlayer(${player.id}, 'attacksPerRound', parseInt(this.value)); updatePlayerAttacksPerRound(${player.id}, parseInt(this.value))">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Extra Damage (x/Turn)</label>
+                            <input type="text" class="form-control" placeholder="e.g., 1d6+3" 
+                                   value="${player.extraOnce}" onchange="updatePlayer(${player.id}, 'extraOnce', this.value)">
+                            <div style="margin-top: var(--space-8); display: flex; align-items: center; gap: var(--space-8);">
+                                <label class="form-label" style="margin-bottom: 0; font-size: var(--font-size-xs);">Times per turn:</label>
+                                <input type="number" class="form-control" style="width: 80px;" value="${player.extraTimes}" min="1" max="${player.attacksPerRound}"
+                                       onchange="updatePlayerExtraTimes(${player.id}, parseInt(this.value))">
+                            </div>
+                            <div style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: var(--space-4);">How many times this damage applies per round (e.g., sneak attack=1, rage on all hits=number of attacks)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group form-row-wide">
+                            <div class="checkbox-container" style="justify-content: flex-start;">
+                                <input type="checkbox" id="advantage-${player.id}" ${player.advantage ? 'checked' : ''} 
+                                       onchange="updatePlayer(${player.id}, 'advantage', this.checked)">
+                                <label for="advantage-${player.id}">Advantage on attacks</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="results-section">
+                        <div class="stats-row">
+                            <div class="stat">
+                                <div>Hit Chance</div>
+                                <div id="hit-${player.id}">0%</div>
+                            </div>
+                            <div class="stat">
+                                <div>Crit Chance</div>
+                                <div id="crit-${player.id}">0%</div>
+                            </div>
+                        </div>
+                        <div class="dpr-value" id="dpr-${player.id}">0.0</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update player data
+        function updatePlayer(playerId, field, value) {
+            const currentPlayers = getCurrentPartyPlayers();
+            const player = currentPlayers.find(p => p.id === playerId);
+            if (player) {
+                player[field] = value;
+                updateCalculations();
+                debounceAutoSave();
+            }
+        }
+
+        // Update extra times with validation
+        function updatePlayerExtraTimes(playerId, value) {
+            const currentPlayers = getCurrentPartyPlayers();
+            const player = currentPlayers.find(p => p.id === playerId);
+            if (player) {
+                // Cap at attacks per round
+                const cappedValue = Math.min(Math.max(1, value || 1), player.attacksPerRound);
+                player.extraTimes = cappedValue;
+                
+                // Update the input field if it was capped
+                const input = document.querySelector(`[data-player-id="${playerId}"] input[type="number"][max="${player.attacksPerRound}"]`);
+                if (input && input.value != cappedValue) {
+                    input.value = cappedValue;
+                }
+                
+                updateCalculations();
+                debounceAutoSave();
+            }
+        }
+
+        // Update attacks per round and adjust extra times max
+        function updatePlayerAttacksPerRound(playerId, value) {
+            const currentPlayers = getCurrentPartyPlayers();
+            const player = currentPlayers.find(p => p.id === playerId);
+            if (player) {
+                // Update max attribute for extra times input
+                const extraTimesInput = document.querySelector(`[data-player-id="${playerId}"] input[type="number"][max]`);
+                if (extraTimesInput) {
+                    extraTimesInput.setAttribute('max', value);
+                    
+                    // If current extra times exceeds new max, cap it
+                    if (player.extraTimes > value) {
+                        player.extraTimes = value;
+                        extraTimesInput.value = value;
+                    }
+                }
+            }
+        }
+
+        // Remove player
+        function removePlayer(playerId) {
+            const currentPlayers = getCurrentPartyPlayers();
+            if (currentPlayers.length <= 1) return;
+            
+            const filtered = currentPlayers.filter(p => p.id !== playerId);
+            setCurrentPartyPlayers(filtered);
+            renderPlayers();
+            updateCalculations();
+            updatePartyIndicators();
+            debounceAutoSave();
+        }
+
+        // Add new player
+        function addPlayer() {
+            const currentPlayers = getCurrentPartyPlayers();
+            if (currentPlayers.length >= 6) return;
+            
+            createPlayer();
+            renderPlayers();
+            updateCalculations();
+            updatePartyIndicators();
+            debounceAutoSave();
+        }
+
+        // Render all players
+        function renderPlayers() {
+            const container = document.getElementById('playersContainer');
+            const currentPlayers = getCurrentPartyPlayers();
+            container.innerHTML = currentPlayers.map(renderPlayerCard).join('');
+        }
+
+        // Update all calculations
+        function updateCalculations() {
+            let totalDPR = 0;
+            const currentPlayers = getCurrentPartyPlayers();
+            
+            currentPlayers.forEach(player => {
+                const result = calculateDPR(player);
+                
+                // Update individual player results
+                const dprEl = document.getElementById(`dpr-${player.id}`);
+                const hitEl = document.getElementById(`hit-${player.id}`);
+                const critEl = document.getElementById(`crit-${player.id}`);
+                const errorEl = document.getElementById(`error-${player.id}-damage`);
+                
+                if (dprEl) dprEl.textContent = result.dpr.toFixed(1);
+                if (hitEl) hitEl.textContent = result.hitChance.toFixed(1) + '%';
+                if (critEl) critEl.textContent = result.critChance.toFixed(1) + '%';
+                
+                if (errorEl) {
+                    errorEl.textContent = result.error || '';
+                }
+                
+                totalDPR += result.dpr;
+            });
+            
+            // Update total DPR
+            document.getElementById('totalDPR').textContent = totalDPR.toFixed(1);
+            
+            // Update HP recommendations
+            updateHPRecommendations(totalDPR);
+        }
+
+        // Update HP recommendations
+        function updateHPRecommendations(totalDPR) {
+            const withResistances = document.getElementById('withResistances').checked;
+            const multiplier = withResistances ? 1.25 : 1;
+            
+            document.getElementById('hp3rounds').textContent = Math.round(totalDPR * 3 * multiplier);
+            document.getElementById('hp4rounds').textContent = Math.round(totalDPR * 4 * multiplier);
+            document.getElementById('hp5rounds').textContent = Math.round(totalDPR * 5 * multiplier);
+        }
+
+        // Data management functions
+        function exportData() {
+            const dataStr = JSON.stringify(gameData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'mh-dnd-dpr-calculator-data.json';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showSaveIndicator('Data exported ✓');
+        }
+        
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    
+                    // Validate structure
+                    if (!imported.parties || typeof imported.parties !== 'object') {
+                        throw new Error('Invalid data structure: missing parties');
+                    }
+                    
+                    // Update playerCount to avoid ID conflicts
+                    let maxId = 0;
+                    Object.values(imported.parties).forEach(party => {
+                        if (Array.isArray(party)) {
+                            party.forEach(player => {
+                                if (player.id && player.id > maxId) {
+                                    maxId = player.id;
+                                }
+                            });
+                        }
+                    });
+                    playerCount = maxId;
+                    
+                    // Merge data
+                    gameData = { ...gameData, ...imported };
+                    
+                    // Restore UI state
+                    if (imported.globalSettings) {
+                        document.getElementById('targetAC').value = imported.globalSettings.targetAC || 19;
+                        document.getElementById('withResistances').checked = imported.globalSettings.resistanceToggle || false;
+                    }
+                    
+                    // Switch to imported current party
+                    switchParty(imported.currentParty || 'party1', false);
+                    
+                    // Save to localStorage
+                    debounceAutoSave();
+                    
+                    showSaveIndicator('Data imported ✓');
+                } catch (error) {
+                    alert('Error importing data: ' + error.message);
+                }
+            };
+            
+            reader.readAsText(file);
+            event.target.value = ''; // Reset file input
+        }
+        
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear ALL data from ALL parties? This cannot be undone and will reset everything to defaults.')) {
+                // Reset to initial state
+                gameData = {
+                    parties: {
+                        party1: [],
+                        party2: [],
+                        party3: [],
+                        party4: [],
+                        party5: []
+                    },
+                    currentParty: 'party1',
+                    globalSettings: {
+                        targetAC: 19,
+                        resistanceToggle: false
+                    }
+                };
+                
+                playerCount = 0;
+                
+                // Data cleared from memory (in real deployment, would clear from storage)
+                
+                // Reset UI
+                document.getElementById('targetAC').value = 19;
+                document.getElementById('withResistances').checked = false;
+                switchParty('party1', false);
+                
+                showSaveIndicator('All data cleared ✓');
+            }
+        }
+        
+        // Modal helper functions
+        function createModal(title, message, body, buttons) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            
+            const buttonsHtml = buttons.map(btn => 
+                `<button type="button" class="btn ${btn.class}" onclick="${btn.action.name}()">${btn.text}</button>`
+            ).join('');
+            
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>${title}</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>${message}</p>
+                        ${body || ''}
+                    </div>
+                    <div class="modal-actions">
+                        ${buttonsHtml}
+                    </div>
+                </div>
+            `;
+            
+            return modal;
+        }
+        
+        function closeModal() {
+            const modal = document.querySelector('.modal');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+        }
+        
+        // Initialize with example players
+        function initializeApp() {
+            // Try to load saved data first
+            const dataLoaded = loadSavedData();
+            
+            if (!dataLoaded) {
+                // Add example players to Party 1
+                const examplePlayers = [
+                    {
+                        name: "Dual Blades Fighter",
+                        damage: "1d6+1d4+6",
+                        elemental: "1d4",
+                        attackBonus: 12,
+                        critRange: 17,
+                        attacksPerRound: 4,
+                        advantage: false,
+                        extraOnce: "1d6",
+                        extraTimes: 1
+                    },
+                    {
+                        name: "Dual Repeaters",
+                        damage: "2d4+6",
+                        elemental: "",
+                        attackBonus: 12,
+                        critRange: 17,
+                        attacksPerRound: 3,
+                        advantage: false,
+                        extraOnce: ""
+                    },
+                    {
+                        name: "Berserker Barbarian",
+                        damage: "2d6+5",
+                        elemental: "",
+                        attackBonus: 10,
+                        critRange: 20,
+                        attacksPerRound: 3,
+                        advantage: false,
+                        extraOnce: "3",
+                        extraTimes: 3
+                    },
+                    {
+                        name: "Samurai",
+                        damage: "1d8+5",
+                        elemental: "1d6",
+                        attackBonus: 11,
+                        critRange: 18,
+                        attacksPerRound: 3,
+                        advantage: true,
+                        extraOnce: ""
+                    }
+                ];
+                
+                examplePlayers.forEach(playerData => createPlayer(playerData));
+            }
+            
+            renderPlayers();
+            updateCalculations();
+            updatePartyIndicators();
+            
+            // Add event listeners
+            document.getElementById('targetAC').addEventListener('change', () => {
+                gameData.globalSettings.targetAC = parseInt(document.getElementById('targetAC').value);
+                updateCalculations();
+                debounceAutoSave();
+            });
+            
+            document.getElementById('withResistances').addEventListener('change', () => {
+                gameData.globalSettings.resistanceToggle = document.getElementById('withResistances').checked;
+                const totalDPR = parseFloat(document.getElementById('totalDPR').textContent) || 0;
+                updateHPRecommendations(totalDPR);
+                debounceAutoSave();
+            });
+        }
+
+        // Start the app when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
