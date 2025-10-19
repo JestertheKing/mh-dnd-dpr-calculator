@@ -607,6 +607,10 @@ select.form-control {
   background: var(--color-bg-6);
 }
 
+.party-tab {
+  position: relative;
+}
+
 .party-tab.has-players::after {
   content: "";
   position: absolute;
@@ -616,6 +620,81 @@ select.form-control {
   height: var(--space-6);
   background: var(--color-success);
   border-radius: 50%;
+}
+
+/* Party tab controls */
+.party-tab-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  position: relative;
+}
+
+.party-tab-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  opacity: 0;
+  transition: opacity var(--duration-fast);
+}
+
+.party-tab-wrapper:hover .party-tab-controls {
+  opacity: 1;
+}
+
+.party-edit-btn,
+.party-delete-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast);
+  font-size: var(--font-size-sm);
+}
+
+.party-edit-btn:hover {
+  color: var(--color-primary);
+  background: var(--color-secondary);
+}
+
+.party-delete-btn:hover {
+  color: var(--color-error);
+  background: rgba(var(--color-error-rgb), 0.1);
+}
+
+.party-name-input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  min-width: 100px;
+}
+
+.add-party-btn {
+  background: var(--color-primary);
+  color: var(--color-btn-primary-text);
+  border: none;
+  border-radius: var(--radius-base);
+  padding: var(--space-8) var(--space-16);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+  margin-left: var(--space-8);
+}
+
+.add-party-btn:hover {
+  background: var(--color-primary-hover);
+}
+
+.add-party-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .current-party {
@@ -944,7 +1023,7 @@ select.form-control {
     <main class="container" style="padding-top: var(--space-24); padding-bottom: var(--space-24);">
         <!-- Persistence Notice -->
         <div style="background: var(--color-bg-2); border: 1px solid var(--color-warning); border-radius: var(--radius-base); padding: var(--space-12); margin-bottom: var(--space-16); font-size: var(--font-size-sm);">
-            <strong>💾 Data Persistence:</strong> Your data auto-saves during this session and persists until you close the browser. Use Export/Import buttons for permanent storage across browser sessions.
+            <strong>💾 Data Persistence:</strong> Your data auto-saves in memory during this session. Data persists until you refresh or close the browser. Use Export/Import buttons for permanent storage across sessions.
         </div>
         <!-- Party Management -->
         <section class="party-management">
@@ -956,12 +1035,8 @@ select.form-control {
                 </div>
             </div>
             
-            <div class="party-tabs">
-                <button class="party-tab active" data-party="party1" onclick="switchParty('party1')">Party 1</button>
-                <button class="party-tab" data-party="party2" onclick="switchParty('party2')">Party 2</button>
-                <button class="party-tab" data-party="party3" onclick="switchParty('party3')">Party 3</button>
-                <button class="party-tab" data-party="party4" onclick="switchParty('party4')">Party 4</button>
-                <button class="party-tab" data-party="party5" onclick="switchParty('party5')">Party 5</button>
+            <div class="party-tabs" id="partyTabsContainer">
+                <!-- Party tabs will be dynamically generated -->
             </div>
             
             <div class="current-party">
@@ -1044,14 +1119,9 @@ select.form-control {
     <script>
         // Global state
         let gameData = {
-            parties: {
-                party1: [],
-                party2: [],
-                party3: [],
-                party4: [],
-                party5: []
-            },
-            currentParty: 'party1',
+            parties: {},
+            partyOrder: [],
+            currentParty: null,
             globalSettings: {
                 targetAC: 19,
                 resistanceToggle: false
@@ -1062,20 +1132,87 @@ select.form-control {
         
         // Get current party players
         function getCurrentPartyPlayers() {
-            return gameData.parties[gameData.currentParty] || [];
+            const party = gameData.parties[gameData.currentParty];
+            return party ? (party.players || []) : [];
         }
         
         // Set current party players
         function setCurrentPartyPlayers(players) {
-            gameData.parties[gameData.currentParty] = players;
+            if (!gameData.parties[gameData.currentParty]) {
+                gameData.parties[gameData.currentParty] = { name: 'Unnamed Party', players: [] };
+            }
+            gameData.parties[gameData.currentParty].players = players;
         }
         
-        // Data persistence functions
-        const STORAGE_KEY = 'mhDndCalculator';
+        // Generate unique party ID
+        function generatePartyId() {
+            return 'party_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // Migration function for old party format
+        function migrateOldPartyFormat(oldData) {
+            try {
+                const newData = {
+                    parties: {},
+                    partyOrder: [],
+                    currentParty: null,
+                    globalSettings: oldData.globalSettings || { targetAC: 19, resistanceToggle: false }
+                };
+                
+                // Convert old party format
+                const partyNames = ['Party 1', 'Party 2', 'Party 3', 'Party 4', 'Party 5'];
+                let hasAnyData = false;
+                
+                Object.keys(oldData.parties).forEach((oldPartyId, index) => {
+                    const players = oldData.parties[oldPartyId];
+                    if (Array.isArray(players) && players.length > 0) {
+                        hasAnyData = true;
+                    }
+                    
+                    const newPartyId = generatePartyId();
+                    newData.parties[newPartyId] = {
+                        name: partyNames[index] || `Party ${index + 1}`,
+                        players: Array.isArray(players) ? players : []
+                    };
+                    newData.partyOrder.push(newPartyId);
+                    
+                    // Set first party with data or first party as current
+                    if (!newData.currentParty || (Array.isArray(players) && players.length > 0)) {
+                        newData.currentParty = newPartyId;
+                    }
+                });
+                
+                // If no current party set, create a default one
+                if (!newData.currentParty || newData.partyOrder.length === 0) {
+                    const defaultPartyId = generatePartyId();
+                    newData.parties[defaultPartyId] = { name: 'Party 1', players: [] };
+                    newData.partyOrder = [defaultPartyId];
+                    newData.currentParty = defaultPartyId;
+                }
+                
+                console.log('Migration successful:', newData);
+                return newData;
+            } catch (error) {
+                console.error('Migration failed:', error);
+                return null;
+            }
+        }
+        
+        // Create default party
+        function createDefaultParty() {
+            const partyId = generatePartyId();
+            gameData.parties[partyId] = { name: 'Party 1', players: [] };
+            gameData.partyOrder = [partyId];
+            gameData.currentParty = partyId;
+        }
+        
+        // In-memory data persistence
+        let persistedData = null;
+        let sessionBackup = null;
         
         function saveData() {
             try {
-                console.log('Saving data to localStorage:', gameData);
+                console.log('Saving data to memory:', gameData);
                 
                 // Update current settings before saving
                 gameData.globalSettings.targetAC = parseInt(document.getElementById('targetAC').value) || 19;
@@ -1083,16 +1220,19 @@ select.form-control {
                 
                 const dataToSave = {
                     parties: gameData.parties,
+                    partyOrder: gameData.partyOrder,
                     currentParty: gameData.currentParty,
                     globalSettings: gameData.globalSettings,
                     lastSaved: new Date().toISOString()
                 };
                 
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-                console.log('Data saved successfully to localStorage');
+                // Save to memory (persists during session)
+                persistedData = JSON.parse(JSON.stringify(dataToSave));
+                sessionBackup = JSON.parse(JSON.stringify(dataToSave));
+                console.log('Data saved successfully to memory');
                 return true;
             } catch (error) {
-                console.error('Error saving data to localStorage:', error);
+                console.error('Error saving data to memory:', error);
                 showSaveIndicator('Save failed! ❌');
                 return false;
             }
@@ -1100,27 +1240,27 @@ select.form-control {
         
         function loadData() {
             try {
-                console.log('Loading data from localStorage');
-                const saved = localStorage.getItem(STORAGE_KEY);
+                console.log('Loading data from memory');
                 
-                if (!saved) {
-                    console.log('No saved data found in localStorage');
+                if (!persistedData && !sessionBackup) {
+                    console.log('No saved data found in memory');
                     return false;
                 }
                 
-                const data = JSON.parse(saved);
-                console.log('Loaded data from localStorage:', data);
+                const data = persistedData || sessionBackup;
+                console.log('Loaded data from memory:', data);
                 
                 // Validate structure
                 if (!data.parties || typeof data.parties !== 'object') {
-                    throw new Error('Invalid data structure: missing parties');
+                    console.log('Invalid data structure in memory');
+                    return false;
                 }
                 
                 // Update playerCount to avoid ID conflicts
                 let maxId = 0;
                 Object.values(data.parties).forEach(party => {
-                    if (Array.isArray(party)) {
-                        party.forEach(player => {
+                    if (party && party.players && Array.isArray(party.players)) {
+                        party.players.forEach(player => {
                             if (player.id && player.id > maxId) {
                                 maxId = player.id;
                             }
@@ -1131,15 +1271,19 @@ select.form-control {
                 
                 // Restore game data
                 gameData = {
-                    parties: data.parties || {
-                        party1: [], party2: [], party3: [], party4: [], party5: []
-                    },
-                    currentParty: data.currentParty || 'party1',
+                    parties: data.parties || {},
+                    partyOrder: data.partyOrder || [],
+                    currentParty: data.currentParty || null,
                     globalSettings: data.globalSettings || {
                         targetAC: 19,
                         resistanceToggle: false
                     }
                 };
+                
+                // Ensure we have at least one party
+                if (gameData.partyOrder.length === 0) {
+                    createDefaultParty();
+                }
                 
                 // Restore UI state
                 document.getElementById('targetAC').value = gameData.globalSettings.targetAC;
@@ -1148,7 +1292,7 @@ select.form-control {
                 console.log('Data loaded and restored successfully');
                 return true;
             } catch (error) {
-                console.error('Error loading data from localStorage:', error);
+                console.error('Error loading data from memory:', error);
                 return false;
             }
         }
@@ -1400,20 +1544,11 @@ select.form-control {
             gameData.currentParty = partyId;
             
             // Update UI
-            document.querySelectorAll('.party-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelector(`[data-party="${partyId}"]`).classList.add('active');
+            renderPartyTabs();
             
-            const partyNames = {
-                party1: 'Party 1',
-                party2: 'Party 2', 
-                party3: 'Party 3',
-                party4: 'Party 4',
-                party5: 'Party 5'
-            };
-            
-            document.getElementById('currentPartyName').textContent = partyNames[partyId];
+            const party = gameData.parties[partyId];
+            const partyName = party ? party.name : 'Unknown Party';
+            document.getElementById('currentPartyName').textContent = partyName;
             
             // Render players for this party
             renderPlayers();
@@ -1425,23 +1560,167 @@ select.form-control {
             }
         }
         
-        function updatePartyIndicators() {
-            Object.keys(gameData.parties).forEach(partyId => {
-                const tab = document.querySelector(`[data-party="${partyId}"]`);
-                const players = gameData.parties[partyId];
-                const count = players ? players.length : 0;
+        // Render party tabs
+        function renderPartyTabs() {
+            const container = document.getElementById('partyTabsContainer');
+            if (!container) return;
+            
+            let tabsHTML = '';
+            
+            gameData.partyOrder.forEach(partyId => {
+                const party = gameData.parties[partyId];
+                if (!party) return;
                 
-                if (count > 0) {
-                    tab.classList.add('has-players');
-                } else {
-                    tab.classList.remove('has-players');
-                }
+                const isActive = partyId === gameData.currentParty;
+                const hasPlayers = party.players && party.players.length > 0;
+                const activeClass = isActive ? 'active' : '';
+                const playersClass = hasPlayers ? 'has-players' : '';
+                
+                tabsHTML += `
+                    <div class="party-tab-wrapper">
+                        <button class="party-tab ${activeClass} ${playersClass}" data-party="${partyId}" onclick="switchParty('${partyId}')">
+                            <span class="party-name" data-party-id="${partyId}">${party.name}</span>
+                        </button>
+                        <div class="party-tab-controls">
+                            <button class="party-edit-btn" onclick="startEditPartyName('${partyId}')" title="Edit party name">✏️</button>
+                            <button class="party-delete-btn" onclick="deleteParty('${partyId}')" title="Delete party">🗑️</button>
+                        </div>
+                    </div>
+                `;
             });
             
+            // Add "Add Party" button
+            const canAddParty = gameData.partyOrder.length < 10;
+            const disabledClass = canAddParty ? '' : 'disabled';
+            tabsHTML += `
+                <button class="add-party-btn" onclick="addParty()" ${!canAddParty ? 'disabled' : ''} title="Add new party">
+                    + Add Party
+                </button>
+            `;
+            
+            container.innerHTML = tabsHTML;
+        }
+        
+        function updatePartyIndicators() {
             // Update current party player count
             const currentPlayers = getCurrentPartyPlayers();
             const countText = currentPlayers.length === 1 ? '1 player' : `${currentPlayers.length} players`;
             document.getElementById('partyPlayerCount').textContent = `(${countText})`;
+            
+            // Re-render tabs to update indicators
+            renderPartyTabs();
+        }
+        
+        // Add new party
+        function addParty() {
+            if (gameData.partyOrder.length >= 10) {
+                alert('Maximum of 10 parties allowed.');
+                return;
+            }
+            
+            const partyId = generatePartyId();
+            const partyNumber = gameData.partyOrder.length + 1;
+            const partyName = `Party ${partyNumber}`;
+            
+            gameData.parties[partyId] = {
+                name: partyName,
+                players: []
+            };
+            gameData.partyOrder.push(partyId);
+            
+            // Switch to the new party
+            switchParty(partyId);
+            
+            showSaveIndicator(`${partyName} created ✓`);
+        }
+        
+        // Start editing party name
+        function startEditPartyName(partyId) {
+            const party = gameData.parties[partyId];
+            if (!party) return;
+            
+            const nameSpan = document.querySelector(`[data-party-id="${partyId}"]`);
+            if (!nameSpan) return;
+            
+            const currentName = party.name;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'party-name-input';
+            input.value = currentName;
+            input.maxLength = 30;
+            
+            // Replace span with input
+            nameSpan.parentNode.replaceChild(input, nameSpan);
+            input.focus();
+            input.select();
+            
+            // Save on Enter or blur
+            const saveEdit = () => {
+                let newName = input.value.trim();
+                if (newName.length === 0) {
+                    newName = 'Unnamed Party';
+                }
+                if (newName.length > 30) {
+                    newName = newName.substring(0, 30);
+                }
+                
+                party.name = newName;
+                debounceAutoSave();
+                renderPartyTabs();
+                
+                // Update current party name display if editing current party
+                if (partyId === gameData.currentParty) {
+                    document.getElementById('currentPartyName').textContent = newName;
+                }
+                
+                showSaveIndicator('Party renamed ✓');
+            };
+            
+            // Cancel on Escape
+            const cancelEdit = () => {
+                renderPartyTabs();
+            };
+            
+            input.addEventListener('blur', saveEdit);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEdit();
+                }
+            });
+        }
+        
+        // Delete party
+        function deleteParty(partyId) {
+            if (gameData.partyOrder.length <= 1) {
+                alert('Cannot delete the last party.');
+                return;
+            }
+            
+            const party = gameData.parties[partyId];
+            if (!party) return;
+            
+            const confirmMessage = `Delete "${party.name}"? This cannot be undone.`;
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Remove from parties and order
+            delete gameData.parties[partyId];
+            gameData.partyOrder = gameData.partyOrder.filter(id => id !== partyId);
+            
+            // If deleting current party, switch to first available
+            if (partyId === gameData.currentParty) {
+                gameData.currentParty = gameData.partyOrder[0];
+            }
+            
+            // Update UI
+            switchParty(gameData.currentParty);
+            
+            showSaveIndicator(`"${party.name}" deleted ✓`);
         }
         
         function duplicateParty() {
@@ -1468,20 +1747,20 @@ select.form-control {
         }
         
         function getDuplicateModalBody() {
-            const parties = ['party1', 'party2', 'party3', 'party4', 'party5'];
-            const partyNames = ['Party 1', 'Party 2', 'Party 3', 'Party 4', 'Party 5'];
-            
             let html = '<div class="party-select-grid">';
             
-            parties.forEach((partyId, index) => {
+            gameData.partyOrder.forEach(partyId => {
+                const party = gameData.parties[partyId];
+                if (!party) return;
+                
                 const isCurrentParty = partyId === gameData.currentParty;
                 const disabled = isCurrentParty ? 'disabled' : '';
-                const playerCount = gameData.parties[partyId].length;
+                const playerCount = party.players ? party.players.length : 0;
                 const subtitle = playerCount > 0 ? ` (${playerCount} players)` : ' (Empty)';
                 
                 html += `
                     <div class="party-option ${disabled}" data-target-party="${partyId}" onclick="selectTargetParty('${partyId}')">
-                        <strong>${partyNames[index]}</strong>
+                        <strong>${party.name}</strong>
                         <div style="font-size: var(--font-size-xs); color: var(--color-text-secondary);">${subtitle}</div>
                     </div>
                 `;
@@ -1513,11 +1792,12 @@ select.form-control {
                 return;
             }
             
-            const targetParty = selected.getAttribute('data-target-party');
+            const targetPartyId = selected.getAttribute('data-target-party');
+            const targetParty = gameData.parties[targetPartyId];
             const currentPlayers = getCurrentPartyPlayers();
             
             // Deep copy players to target party
-            gameData.parties[targetParty] = currentPlayers.map(player => ({
+            targetParty.players = currentPlayers.map(player => ({
                 ...player,
                 id: ++playerCount // Give new IDs to avoid conflicts
             }));
@@ -1526,15 +1806,7 @@ select.form-control {
             debounceAutoSave();
             updatePartyIndicators();
             
-            const partyNames = {
-                party1: 'Party 1',
-                party2: 'Party 2',
-                party3: 'Party 3', 
-                party4: 'Party 4',
-                party5: 'Party 5'
-            };
-            
-            showSaveIndicator(`Duplicated to ${partyNames[targetParty]} ✓`);
+            showSaveIndicator(`Duplicated to "${targetParty.name}" ✓`);
         }
         
         function clearCurrentParty() {
@@ -1859,20 +2131,16 @@ select.form-control {
         function clearAllData() {
             if (confirm('Are you sure you want to clear ALL data from ALL parties? This cannot be undone and will reset everything to defaults.')) {
                 try {
-                    // Clear localStorage
-                    localStorage.removeItem(STORAGE_KEY);
-                    console.log('Cleared data from localStorage');
+                    // Clear memory data
+                    persistedData = null;
+                    sessionBackup = null;
+                    console.log('Cleared data from memory');
                     
                     // Reset to initial state
                     gameData = {
-                        parties: {
-                            party1: [],
-                            party2: [],
-                            party3: [],
-                            party4: [],
-                            party5: []
-                        },
-                        currentParty: 'party1',
+                        parties: {},
+                        partyOrder: [],
+                        currentParty: null,
                         globalSettings: {
                             targetAC: 19,
                             resistanceToggle: false
@@ -1881,10 +2149,13 @@ select.form-control {
                     
                     playerCount = 0;
                     
+                    // Create default party
+                    createDefaultParty();
+                    
                     // Reset UI
                     document.getElementById('targetAC').value = 19;
                     document.getElementById('withResistances').checked = false;
-                    switchParty('party1', false);
+                    switchParty(gameData.currentParty, false);
                     
                     // Clear last saved display
                     const lastSavedDisplay = document.getElementById('lastSavedDisplay');
@@ -1940,7 +2211,9 @@ select.form-control {
             const dataLoaded = loadSavedData();
             
             if (!dataLoaded) {
-                // Add example players to Party 1
+                // Create default party with example players
+                createDefaultParty();
+                
                 const examplePlayers = [
                     {
                         name: "Dual Blades Fighter",
@@ -1989,6 +2262,12 @@ select.form-control {
                 examplePlayers.forEach(playerData => createPlayer(playerData));
             }
             
+            // Ensure we have a current party set
+            if (!gameData.currentParty && gameData.partyOrder.length > 0) {
+                gameData.currentParty = gameData.partyOrder[0];
+            }
+            
+            renderPartyTabs();
             renderPlayers();
             updateCalculations();
             updatePartyIndicators();
