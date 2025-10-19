@@ -80,7 +80,7 @@
   --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23134252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f5f5f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 
-  /* RGB versions for opacity control *
+  /* RGB versions for opacity control */
   --color-success-rgb: 33, 128, 141;
   --color-error-rgb: 192, 21, 47;
   --color-warning-rgb: 168, 75, 47;
@@ -942,6 +942,10 @@ select.form-control {
     </div>
 
     <main class="container" style="padding-top: var(--space-24); padding-bottom: var(--space-24);">
+        <!-- Persistence Notice -->
+        <div style="background: var(--color-bg-2); border: 1px solid var(--color-warning); border-radius: var(--radius-base); padding: var(--space-12); margin-bottom: var(--space-16); font-size: var(--font-size-sm);">
+            <strong>💾 Data Persistence:</strong> Your data auto-saves during this session and persists until you close the browser. Use Export/Import buttons for permanent storage across browser sessions.
+        </div>
         <!-- Party Management -->
         <section class="party-management">
             <div class="party-header">
@@ -977,12 +981,15 @@ select.form-control {
                 <div class="settings-buttons">
                     <button type="button" class="btn btn--primary" onclick="addPlayer()">Add Player</button>
                     <div class="data-management">
+                        <button type="button" class="btn btn--secondary btn--sm" onclick="testSave()">Test Save</button>
+                        <button type="button" class="btn btn--secondary btn--sm" onclick="viewSavedData()">View Saved Data</button>
                         <button type="button" class="btn btn--secondary btn--sm" onclick="exportData()">Export Data</button>
                         <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
                         <button type="button" class="btn btn--secondary btn--sm" onclick="document.getElementById('importFile').click()">Import Data</button>
                         <button type="button" class="btn btn--outline btn--sm" onclick="clearAllData()">Clear All Data</button>
                     </div>
                 </div>
+                <div id="lastSavedDisplay" style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: var(--space-8); text-align: right;"></div>
             </div>
         </section>
 
@@ -1064,6 +1071,88 @@ select.form-control {
         }
         
         // Data persistence functions
+        const STORAGE_KEY = 'mhDndCalculator';
+        
+        function saveData() {
+            try {
+                console.log('Saving data to localStorage:', gameData);
+                
+                // Update current settings before saving
+                gameData.globalSettings.targetAC = parseInt(document.getElementById('targetAC').value) || 19;
+                gameData.globalSettings.resistanceToggle = document.getElementById('withResistances').checked;
+                
+                const dataToSave = {
+                    parties: gameData.parties,
+                    currentParty: gameData.currentParty,
+                    globalSettings: gameData.globalSettings,
+                    lastSaved: new Date().toISOString()
+                };
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                console.log('Data saved successfully to localStorage');
+                return true;
+            } catch (error) {
+                console.error('Error saving data to localStorage:', error);
+                showSaveIndicator('Save failed! ❌');
+                return false;
+            }
+        }
+        
+        function loadData() {
+            try {
+                console.log('Loading data from localStorage');
+                const saved = localStorage.getItem(STORAGE_KEY);
+                
+                if (!saved) {
+                    console.log('No saved data found in localStorage');
+                    return false;
+                }
+                
+                const data = JSON.parse(saved);
+                console.log('Loaded data from localStorage:', data);
+                
+                // Validate structure
+                if (!data.parties || typeof data.parties !== 'object') {
+                    throw new Error('Invalid data structure: missing parties');
+                }
+                
+                // Update playerCount to avoid ID conflicts
+                let maxId = 0;
+                Object.values(data.parties).forEach(party => {
+                    if (Array.isArray(party)) {
+                        party.forEach(player => {
+                            if (player.id && player.id > maxId) {
+                                maxId = player.id;
+                            }
+                        });
+                    }
+                });
+                playerCount = maxId;
+                
+                // Restore game data
+                gameData = {
+                    parties: data.parties || {
+                        party1: [], party2: [], party3: [], party4: [], party5: []
+                    },
+                    currentParty: data.currentParty || 'party1',
+                    globalSettings: data.globalSettings || {
+                        targetAC: 19,
+                        resistanceToggle: false
+                    }
+                };
+                
+                // Restore UI state
+                document.getElementById('targetAC').value = gameData.globalSettings.targetAC;
+                document.getElementById('withResistances').checked = gameData.globalSettings.resistanceToggle;
+                
+                console.log('Data loaded and restored successfully');
+                return true;
+            } catch (error) {
+                console.error('Error loading data from localStorage:', error);
+                return false;
+            }
+        }
+        
         function debounceAutoSave() {
             if (saveTimeout) clearTimeout(saveTimeout);
             
@@ -1071,16 +1160,78 @@ select.form-control {
             showSaveIndicator('Saving...');
             
             saveTimeout = setTimeout(() => {
-                // Data persists in memory during the session
-                // In a real deployment, this would save to localStorage/backend
-                showSaveIndicator('Saved ✓');
+                const success = saveData();
+                if (success) {
+                    showSaveIndicator('Saved ✓');
+                    updateLastSavedDisplay();
+                } else {
+                    showSaveIndicator('Save failed! ❌');
+                }
             }, 500);
         }
         
         function loadSavedData() {
-            // In this demo version, data only persists during the session
-            // In a real deployment, this would load from localStorage/backend
-            return false;
+            return loadData();
+        }
+        
+        function testSave() {
+            console.log('=== MANUAL TEST SAVE ===');
+            const success = saveData();
+            if (success) {
+                alert('Save test successful! Check console for details.');
+                showSaveIndicator('Test save successful ✓');
+            } else {
+                alert('Save test failed! Check console for errors.');
+            }
+        }
+        
+        function viewSavedData() {
+            try {
+                let saved = null;
+                let dataSource = 'No data';
+                
+                // Use in-memory data
+                if (persistedData) {
+                    saved = JSON.stringify(persistedData);
+                    dataSource = 'in-memory (session)';
+                } else if (sessionBackup) {
+                    saved = JSON.stringify(sessionBackup);
+                    dataSource = 'session backup';
+                }
+                
+                // Show current game data if no saved data
+                if (!saved) {
+                    saved = JSON.stringify({
+                        parties: gameData.parties,
+                        currentParty: gameData.currentParty,
+                        globalSettings: gameData.globalSettings,
+                        note: 'Current session data (not persisted)'
+                    });
+                    dataSource = 'current session';
+                }
+                
+                const data = JSON.parse(saved);
+                const formatted = JSON.stringify(data, null, 2);
+                
+                // Create a modal to display the data
+                const modal = createModal(
+                    `Saved Data (${dataSource})`,
+                    `Current saved data from ${dataSource}:`,
+                    `<pre style="max-height: 400px; overflow-y: auto; background: var(--color-secondary); padding: var(--space-12); border-radius: var(--radius-base); font-size: var(--font-size-sm);">${formatted}</pre>`,
+                    [{ text: 'Close', class: 'btn--secondary', action: closeModal }]
+                );
+                document.body.appendChild(modal);
+            } catch (error) {
+                alert('Error reading saved data: ' + error.message);
+            }
+        }
+        
+        function updateLastSavedDisplay() {
+            const timestamp = new Date().toLocaleTimeString();
+            let display = document.getElementById('lastSavedDisplay');
+            if (display) {
+                display.textContent = `Last saved: ${timestamp}`;
+            }
         }
         
         function showSaveIndicator(text) {
@@ -1431,7 +1582,7 @@ select.form-control {
                 <div class="player-card" data-player-id="${player.id}">
                     <div class="player-header">
                         <input type="text" class="player-name form-control" value="${player.name}" 
-                               onchange="updatePlayer(${player.id}, 'name', this.value)" style="width: auto; background: transparent; border: none; font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--color-orange-400); padding: 0;">
+                               oninput="updatePlayer(${player.id}, 'name', this.value)" style="width: auto; background: transparent; border: none; font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--color-orange-400); padding: 0;">
                         <button type="button" class="remove-player" onclick="removePlayer(${player.id})" style="${getCurrentPartyPlayers().length <= 1 ? 'display: none;' : ''}">Remove</button>
                     </div>
                     
@@ -1439,13 +1590,13 @@ select.form-control {
                         <div class="form-group">
                             <label class="form-label">Damage Dice</label>
                             <input type="text" class="form-control" placeholder="e.g., 1d6+1d4+6 or 2d6+5" 
-                                   value="${player.damage}" onchange="updatePlayer(${player.id}, 'damage', this.value)">
+                                   value="${player.damage}" oninput="updatePlayer(${player.id}, 'damage', this.value)">
                             <div class="error-message" id="error-${player.id}-damage"></div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Elemental Dice (Optional)</label>
                             <input type="text" class="form-control" placeholder="e.g., 1d4 or 1d6+2" 
-                                   value="${player.elemental}" onchange="updatePlayer(${player.id}, 'elemental', this.value)">
+                                   value="${player.elemental}" oninput="updatePlayer(${player.id}, 'elemental', this.value)">
                         </div>
                     </div>
                     
@@ -1453,7 +1604,7 @@ select.form-control {
                         <div class="form-group">
                             <label class="form-label">Attack Bonus</label>
                             <input type="number" class="form-control" value="${player.attackBonus}" 
-                                   onchange="updatePlayer(${player.id}, 'attackBonus', parseInt(this.value))">
+                                   oninput="updatePlayer(${player.id}, 'attackBonus', parseInt(this.value))">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Crit Range</label>
@@ -1470,16 +1621,16 @@ select.form-control {
                         <div class="form-group">
                             <label class="form-label">Attacks per Round</label>
                             <input type="number" class="form-control" value="${player.attacksPerRound}" min="1" 
-                                   onchange="updatePlayer(${player.id}, 'attacksPerRound', parseInt(this.value)); updatePlayerAttacksPerRound(${player.id}, parseInt(this.value))">
+                                   oninput="updatePlayer(${player.id}, 'attacksPerRound', parseInt(this.value)); updatePlayerAttacksPerRound(${player.id}, parseInt(this.value))">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Extra Damage (x/Turn)</label>
                             <input type="text" class="form-control" placeholder="e.g., 1d6+3" 
-                                   value="${player.extraOnce}" onchange="updatePlayer(${player.id}, 'extraOnce', this.value)">
+                                   value="${player.extraOnce}" oninput="updatePlayer(${player.id}, 'extraOnce', this.value)">
                             <div style="margin-top: var(--space-8); display: flex; align-items: center; gap: var(--space-8);">
                                 <label class="form-label" style="margin-bottom: 0; font-size: var(--font-size-xs);">Times per turn:</label>
                                 <input type="number" class="form-control" style="width: 80px;" value="${player.extraTimes}" min="1" max="${player.attacksPerRound}"
-                                       onchange="updatePlayerExtraTimes(${player.id}, parseInt(this.value))">
+                                       oninput="updatePlayerExtraTimes(${player.id}, parseInt(this.value))">
                             </div>
                             <div style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: var(--space-4);">How many times this damage applies per round (e.g., sneak attack=1, rage on all hits=number of attacks)</div>
                         </div>
@@ -1692,7 +1843,7 @@ select.form-control {
                     // Switch to imported current party
                     switchParty(imported.currentParty || 'party1', false);
                     
-                    // Save to localStorage
+                    // Save to memory
                     debounceAutoSave();
                     
                     showSaveIndicator('Data imported ✓');
@@ -1707,32 +1858,45 @@ select.form-control {
         
         function clearAllData() {
             if (confirm('Are you sure you want to clear ALL data from ALL parties? This cannot be undone and will reset everything to defaults.')) {
-                // Reset to initial state
-                gameData = {
-                    parties: {
-                        party1: [],
-                        party2: [],
-                        party3: [],
-                        party4: [],
-                        party5: []
-                    },
-                    currentParty: 'party1',
-                    globalSettings: {
-                        targetAC: 19,
-                        resistanceToggle: false
+                try {
+                    // Clear localStorage
+                    localStorage.removeItem(STORAGE_KEY);
+                    console.log('Cleared data from localStorage');
+                    
+                    // Reset to initial state
+                    gameData = {
+                        parties: {
+                            party1: [],
+                            party2: [],
+                            party3: [],
+                            party4: [],
+                            party5: []
+                        },
+                        currentParty: 'party1',
+                        globalSettings: {
+                            targetAC: 19,
+                            resistanceToggle: false
+                        }
+                    };
+                    
+                    playerCount = 0;
+                    
+                    // Reset UI
+                    document.getElementById('targetAC').value = 19;
+                    document.getElementById('withResistances').checked = false;
+                    switchParty('party1', false);
+                    
+                    // Clear last saved display
+                    const lastSavedDisplay = document.getElementById('lastSavedDisplay');
+                    if (lastSavedDisplay) {
+                        lastSavedDisplay.textContent = '';
                     }
-                };
-                
-                playerCount = 0;
-                
-                // Data cleared from memory (in real deployment, would clear from storage)
-                
-                // Reset UI
-                document.getElementById('targetAC').value = 19;
-                document.getElementById('withResistances').checked = false;
-                switchParty('party1', false);
-                
-                showSaveIndicator('All data cleared ✓');
+                    
+                    showSaveIndicator('All data cleared ✓');
+                } catch (error) {
+                    console.error('Error clearing data:', error);
+                    showSaveIndicator('Clear failed! ❌');
+                }
             }
         }
         
@@ -1829,8 +1993,8 @@ select.form-control {
             updateCalculations();
             updatePartyIndicators();
             
-            // Add event listeners
-            document.getElementById('targetAC').addEventListener('change', () => {
+            // Add event listeners for auto-save
+            document.getElementById('targetAC').addEventListener('input', () => {
                 gameData.globalSettings.targetAC = parseInt(document.getElementById('targetAC').value);
                 updateCalculations();
                 debounceAutoSave();
@@ -1842,6 +2006,8 @@ select.form-control {
                 updateHPRecommendations(totalDPR);
                 debounceAutoSave();
             });
+            
+            console.log('Event listeners attached for auto-save functionality');
         }
 
         // Start the app when page loads
